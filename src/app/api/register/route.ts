@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import fs from "fs/promises";
-import path from "path";
+import { saveRegistration } from "@/lib/database";
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,6 +10,8 @@ export async function POST(req: NextRequest) {
       formData.get("name")) as string;
     const peopleCount = (formData.get("peopleCount") ||
       formData.get("count")) as string;
+    const phone = formData.get("phone") as string;
+    const willAttend = formData.get("willAttend") !== "false";
 
     if (!eventId || !fullName || !peopleCount) {
       return NextResponse.json(
@@ -28,20 +29,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Save registration
-    const registrationPath = path.join(
-      process.cwd(),
-      "data",
-      `${eventId}_registrations.txt`
-    );
-    const registrationEntry = `${fullName} | ${count} | ${new Date().toISOString()}\n`;
+    // Save registration to MongoDB
+    const registration = {
+      eventId,
+      name: fullName,
+      phone: phone || undefined,
+      willAttend,
+      guestCount: count,
+      registeredAt: new Date(),
+    };
 
-    try {
-      await fs.appendFile(registrationPath, registrationEntry, "utf-8");
-    } catch {
-      // If file doesn't exist, create it
-      await fs.writeFile(registrationPath, registrationEntry, "utf-8");
-    }
+    await saveRegistration(registration);
 
     return NextResponse.json({
       success: true,

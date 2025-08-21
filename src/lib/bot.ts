@@ -1,7 +1,15 @@
 import { Bot, Context, session, SessionFlavor } from "grammy";
 import OpenAI from "openai";
-import fs from "fs/promises";
-import path from "path";
+import {
+  saveEvent,
+  savePhoto,
+  getEvent,
+  getUserEvents,
+  getRegistrationCount,
+  getEventRegistrations,
+  EventData,
+  PhotoData,
+} from "./database";
 
 // Session interface for storing user state
 interface SessionData {
@@ -106,34 +114,29 @@ function createBot(): Bot<BotContext> {
         // Get file info from Telegram
         const file = await ctx.api.getFile(photo.file_id);
         const photoFileName = `photo_${Date.now()}_${ctx.from!.id}.jpg`;
-        const localPhotoPath = `/photos/${photoFileName}`;
-        const fullLocalPath = path.join(
-          process.cwd(),
-          "public",
-          "photos",
-          photoFileName
-        );
 
-        // Download photo from Telegram
+        // Create Telegram CDN URL
         const telegramPhotoUrl = `https://api.telegram.org/file/bot${process.env.TELEGRAM_BOT_TOKEN}/${file.file_path}`;
 
-        // Create photos directory if it doesn't exist
-        await fs.mkdir(path.dirname(fullLocalPath), { recursive: true });
+        // Save photo metadata to MongoDB
+        const photoData: PhotoData = {
+          photoId: `${Date.now()}_${ctx.from!.id}_${photo.file_id}`,
+          eventId: "", // Will be set when event is created
+          userId: ctx.from!.id,
+          telegramFileId: photo.file_id,
+          telegramUrl: telegramPhotoUrl,
+          filename: photoFileName,
+          mimeType: "image/jpeg",
+          fileSize: photo.file_size,
+          uploadedAt: new Date(),
+        };
 
-        // Download and save the photo
-        const response = await fetch(telegramPhotoUrl);
-        if (!response.ok) {
-          throw new Error(`Failed to download photo: ${response.statusText}`);
-        }
+        await savePhoto(photoData);
+        console.log(`✅ Photo metadata saved to MongoDB: ${photoData.photoId}`);
 
-        const buffer = Buffer.from(await response.arrayBuffer());
-        await fs.writeFile(fullLocalPath, buffer);
-
-        console.log(`✅ Photo saved to: ${fullLocalPath}`);
-
-        // Store the web-accessible path
+        // Store the photo ID in session for now
         ctx.session.eventData.photos = ctx.session.eventData.photos || [];
-        ctx.session.eventData.photos.push(localPhotoPath);
+        ctx.session.eventData.photos.push(photoData.photoId);
 
         return ctx.reply(
           `✅ Фото добавлено и сохранено! Всего фото: ${ctx.session.eventData.photos.length}\n` +
@@ -173,38 +176,35 @@ function createBot(): Bot<BotContext> {
         // Get file info from Telegram
         const file = await ctx.api.getFile(document.file_id);
         const photoFileName = `photo_${Date.now()}_${ctx.from!.id}.jpg`;
-        const localPhotoPath = `/photos/${photoFileName}`;
-        const fullLocalPath = path.join(
-          process.cwd(),
-          "public",
-          "photos",
-          photoFileName
-        );
 
-        // Download photo from Telegram
+        // Create Telegram CDN URL
         const telegramPhotoUrl = `https://api.telegram.org/file/bot${process.env.TELEGRAM_BOT_TOKEN}/${file.file_path}`;
 
-        // Create photos directory if it doesn't exist
-        await fs.mkdir(path.dirname(fullLocalPath), { recursive: true });
+        // Save photo metadata to MongoDB
+        const photoData: PhotoData = {
+          photoId: `${Date.now()}_${ctx.from!.id}_${document.file_id}`,
+          eventId: "", // Will be set when event is created
+          userId: ctx.from!.id,
+          telegramFileId: document.file_id,
+          telegramUrl: telegramPhotoUrl,
+          filename: photoFileName,
+          mimeType: document.mime_type || "image/jpeg",
+          fileSize: document.file_size,
+          uploadedAt: new Date(),
+        };
 
-        // Download and save the photo
-        const response = await fetch(telegramPhotoUrl);
-        if (!response.ok) {
-          throw new Error(`Failed to download photo: ${response.statusText}`);
-        }
+        await savePhoto(photoData);
+        console.log(
+          `✅ Photo document metadata saved to MongoDB: ${photoData.photoId}`
+        );
 
-        const buffer = Buffer.from(await response.arrayBuffer());
-        await fs.writeFile(fullLocalPath, buffer);
-
-        console.log(`✅ Photo document saved to: ${fullLocalPath}`);
-
-        // Store the web-accessible path
+        // Store the photo ID in session for now
         ctx.session.eventData.photos = ctx.session.eventData.photos || [];
-        ctx.session.eventData.photos.push(localPhotoPath);
+        ctx.session.eventData.photos.push(photoData.photoId);
 
         return ctx.reply(
-          `✅ Фото добавлено и сохранено! Всего фото: ${ctx.session.eventData.photos.length}
-` + "Отправьте еще фото или нажмите /done для завершения"
+          `✅ Фото добавлено и сохранено! Всего фото: ${ctx.session.eventData.photos.length}\n` +
+            "Отправьте еще фото или нажмите /done для завершения"
         );
       } catch (error) {
         console.error("❌ Error processing photo document:", error);
@@ -228,40 +228,93 @@ function createBot(): Bot<BotContext> {
         );
         console.log("💡 Starting invitation generation...");
 
-        // Generate HTML invitation
+        // Save event to MongoDB
+        const eventId = `event_${Date.now()}_${ctx.from!.id}`;
+
+        // Get actual photo URLs from MongoDB
+        const photoUrls: string[] = [];
+        if (
+          ctx.session.eventData.photos &&
+          ctx.session.eventData.photos.length > 0
+        ) {
+          const { getPhotosCollection } = await import("./database");
+          const photosCollection = await getPhotosCollection();
+
+          for (const photoId of ctx.session.eventData.photos) {
+            const photoDoc = await photosCollection.findOne({ photoId });
+            if (photoDoc) {
+              photoUrls.push(photoDoc.telegramUrl);
+            }
+          }
+        }
+
+        // Update the session data with real photo URLs for AI generation
+        const eventDataForAI = {
+          ...ctx.session.eventData,
+          photos: photoUrls,
+        };
+
+        // Generate HTML with actual photo URLs
         const invitationHtml = await generateInvitation(
-          ctx.session.eventData,
+          eventDataForAI,
           ctx.from!.id
         );
         console.log("✅ Invitation HTML generated successfully");
 
-        // Save invitation
-        const eventId = `event_${Date.now()}_${ctx.from!.id}`;
-        const invitationPath = path.join(
-          process.cwd(),
-          "public",
-          "invitations",
-          `${eventId}.html`
-        );
-        console.log("💾 Saving invitation to:", invitationPath);
+        const eventData: EventData = {
+          eventId,
+          userId: ctx.from!.id,
+          eventType: ctx.session.eventData.type || "",
+          brideName:
+            ctx.session.eventData.type === "wedding"
+              ? ctx.session.eventData.name?.split(" и ")[0]
+              : undefined,
+          groomName:
+            ctx.session.eventData.type === "wedding"
+              ? ctx.session.eventData.name?.split(" и ")[1]
+              : undefined,
+          eventName:
+            ctx.session.eventData.type !== "wedding"
+              ? ctx.session.eventData.name
+              : undefined,
+          date: ctx.session.eventData.date || "",
+          time: ctx.session.eventData.time || "",
+          location: ctx.session.eventData.location || "",
+          photos: photoUrls,
+          htmlContent: invitationHtml,
+          stylePreference: parseInt(ctx.session.eventData.style || "1"),
+          createdAt: new Date(),
+        };
 
-        // Ensure invitations directory exists
-        await fs.mkdir(path.dirname(invitationPath), { recursive: true });
-        await fs.writeFile(invitationPath, invitationHtml);
-        console.log("✅ Invitation file saved successfully");
+        await saveEvent(eventData);
+        console.log(`✅ Event saved to MongoDB: ${eventId}`);
 
-        // Create registration file
-        const registrationPath = path.join(
-          process.cwd(),
-          "data",
-          `${eventId}_registrations.txt`
-        );
-        await fs.writeFile(registrationPath, "");
-        console.log("✅ Registration file created");
+        // Update photo documents with the actual event ID
+        if (
+          ctx.session.eventData.photos &&
+          ctx.session.eventData.photos.length > 0
+        ) {
+          const { getPhotosCollection } = await import("./database");
+          const photosCollection = await getPhotosCollection();
 
+          for (const photoId of ctx.session.eventData.photos) {
+            await photosCollection.updateOne(
+              { photoId },
+              { $set: { eventId } }
+            );
+          }
+          console.log(
+            `✅ Updated ${ctx.session.eventData.photos.length} photos with eventId`
+          );
+        }
+
+        // Create invitation URL
         const invitationUrl = `${
-          process.env.NEXTAUTH_URL || "http://localhost:3000"
-        }/invitations/${eventId}`;
+          process.env.NEXTAUTH_URL ||
+          process.env.VERCEL_URL ||
+          "http://localhost:3000"
+        }/event/${eventId}`;
+
         console.log("🔗 Invitation URL:", invitationUrl);
 
         ctx.session.step = "idle";
@@ -299,19 +352,9 @@ function createBot(): Bot<BotContext> {
   bot.command("stats", async (ctx) => {
     try {
       const userId = ctx.from!.id;
-      const dataDir = path.join(process.cwd(), "data");
 
-      // Get all registration files
-      const files = await fs.readdir(dataDir);
-      const userEvents = files
-        .filter(
-          (file) =>
-            file.includes(`_${userId}_`) && file.endsWith("_registrations.txt")
-        )
-        .map((file) => {
-          const eventId = file.replace("_registrations.txt", "");
-          return eventId;
-        });
+      // Get user events from MongoDB
+      const userEvents = await getUserEvents(userId);
 
       if (userEvents.length === 0) {
         return ctx.reply(
@@ -321,14 +364,10 @@ function createBot(): Bot<BotContext> {
 
       // Create inline keyboard with event buttons
       const keyboard = {
-        inline_keyboard: userEvents.map((eventId, index) => [
+        inline_keyboard: userEvents.map((event) => [
           {
-            text: `📊 Мероприятие ${index + 1} - Статистика`,
-            callback_data: `stats_${eventId}`,
-          },
-          {
-            text: `📋 Список гостей`,
-            callback_data: `list_${eventId}`,
+            text: `📊 ${event.eventType} - ${event.date}`,
+            callback_data: `info_${event.eventId}`,
           },
         ]),
       };
@@ -348,38 +387,84 @@ function createBot(): Bot<BotContext> {
   bot.on("callback_query:data", async (ctx) => {
     const data = ctx.callbackQuery.data;
 
+    if (data.startsWith("info_")) {
+      const eventId = data.replace("info_", "");
+
+      try {
+        // Get event details from MongoDB
+        const event = await getEvent(eventId);
+        if (!event) {
+          await ctx.answerCallbackQuery();
+          return ctx.reply("❌ Мероприятие не найдено");
+        }
+
+        // Get registration statistics
+        const registrationCount = await getRegistrationCount(eventId);
+        const registrations = await getEventRegistrations(eventId);
+        const totalPeople = registrations.reduce(
+          (sum, reg) => sum + (reg.guestCount || 1),
+          0
+        );
+
+        // Build response message
+        let message = `📊 ${event.eventType} - ${event.date}\n`;
+        message += `📍 ${event.location}\n`;
+        message += `⏰ ${event.time}\n\n`;
+
+        // Statistics section
+        message += `📈 СТАТИСТИКА:\n`;
+        message += `👥 Зарегистрировано: ${registrationCount} гостей\n`;
+        message += `👨‍👩‍👧‍👦 Общее количество людей: ${totalPeople}\n\n`;
+
+        // Guest list section
+        if (registrations.length > 0) {
+          message += `📋 СПИСОК ГОСТЕЙ:\n`;
+          registrations.forEach((reg, index) => {
+            const attendStatus = reg.willAttend ? "✅" : "❌";
+            const guestCount = reg.guestCount || 1;
+            message += `${index + 1}. ${attendStatus} ${
+              reg.name
+            } (${guestCount} чел.)\n`;
+            if (reg.phone) {
+              message += `   📞 ${reg.phone}\n`;
+            }
+          });
+        } else {
+          message += `📋 СПИСОК ГОСТЕЙ:\n`;
+          message += `Пока никто не зарегистрировался\n`;
+        }
+
+        await ctx.answerCallbackQuery();
+        return ctx.reply(message);
+      } catch (error) {
+        console.error("Error getting event info:", error);
+        await ctx.answerCallbackQuery();
+        return ctx.reply("❌ Ошибка при получении информации о мероприятии");
+      }
+    }
+
+    // Keep old handlers for backward compatibility (can be removed later)
     if (data.startsWith("stats_")) {
       const eventId = data.replace("stats_", "");
 
       try {
-        const registrationPath = path.join(
-          process.cwd(),
-          "data",
-          `${eventId}_registrations.txt`
+        const registrationCount = await getRegistrationCount(eventId);
+
+        // Get detailed registrations to count total people
+        const registrations = await getEventRegistrations(eventId);
+        const totalPeople = registrations.reduce(
+          (sum, reg) => sum + (reg.guestCount || 1),
+          0
         );
-        const registrations = await fs.readFile(registrationPath, "utf-8");
-        const lines = registrations
-          .trim()
-          .split("\n")
-          .filter((line) => line.length > 0);
-
-        let totalPeople = 0;
-        const registeredGuests = lines.length;
-
-        lines.forEach((line) => {
-          const parts = line.split(" | ");
-          if (parts.length >= 2) {
-            totalPeople += parseInt(parts[1]) || 1;
-          }
-        });
 
         await ctx.answerCallbackQuery();
         return ctx.reply(
           `📊 Статистика регистраций\n\n` +
-            `👥 Зарегистрировано гостей: ${registeredGuests}\n` +
+            `👥 Зарегистрировано гостей: ${registrationCount}\n` +
             `👨‍👩‍👧‍👦 Общее количество людей: ${totalPeople}`
         );
-      } catch {
+      } catch (error) {
+        console.error("Error getting event stats:", error);
         await ctx.answerCallbackQuery();
         return ctx.reply("❌ Мероприятие не найдено или нет регистраций");
       }
@@ -389,18 +474,9 @@ function createBot(): Bot<BotContext> {
       const eventId = data.replace("list_", "");
 
       try {
-        const registrationPath = path.join(
-          process.cwd(),
-          "data",
-          `${eventId}_registrations.txt`
-        );
-        const registrations = await fs.readFile(registrationPath, "utf-8");
-        const lines = registrations
-          .trim()
-          .split("\n")
-          .filter((line) => line.length > 0);
+        const registrations = await getEventRegistrations(eventId);
 
-        if (lines.length === 0) {
+        if (registrations.length === 0) {
           await ctx.answerCallbackQuery();
           return ctx.reply(
             "📝 Пока никто не зарегистрировался на это мероприятие"
@@ -409,18 +485,21 @@ function createBot(): Bot<BotContext> {
 
         let message = `📋 Список зарегистрированных гостей:\n\n`;
 
-        lines.forEach((line, index) => {
-          const parts = line.split(" | ");
-          if (parts.length >= 2) {
-            const name = parts[0];
-            const count = parts[1];
-            message += `${index + 1}. ${name} (${count} чел.)\n`;
+        registrations.forEach((reg, index) => {
+          const attendStatus = reg.willAttend ? "✅ Придёт" : "❌ Не придёт";
+          const guestCount = reg.guestCount || 1;
+          message += `${index + 1}. ${
+            reg.name
+          } (${guestCount} чел.) - ${attendStatus}\n`;
+          if (reg.phone) {
+            message += `   📞 ${reg.phone}\n`;
           }
         });
 
         await ctx.answerCallbackQuery();
         return ctx.reply(message);
-      } catch {
+      } catch (error) {
+        console.error("Error getting event registrations:", error);
         await ctx.answerCallbackQuery();
         return ctx.reply("❌ Мероприятие не найдено или нет регистраций");
       }
@@ -724,24 +803,6 @@ Return ONLY HTML code without markdown formatting.`;
   }
 }
 
-// Ensure data directories exist
-async function ensureDirectories() {
-  const dataDir = path.join(process.cwd(), "data");
-  const uploadsDir = path.join(process.cwd(), "public", "uploads");
-
-  try {
-    await fs.access(dataDir);
-  } catch {
-    await fs.mkdir(dataDir, { recursive: true });
-  }
-
-  try {
-    await fs.access(uploadsDir);
-  } catch {
-    await fs.mkdir(uploadsDir, { recursive: true });
-  }
-}
-
 // Export a getter function for the bot
 export function getBot(): Bot<BotContext> {
   if (!botInstance) {
@@ -760,4 +821,3 @@ export const bot = {
 };
 
 // Initialize directories on startup
-ensureDirectories().catch(console.error);
