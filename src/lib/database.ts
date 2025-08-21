@@ -5,15 +5,22 @@ let db: Db;
 
 export async function connectToDatabase() {
   if (!client) {
-    const uri = process.env.MONGODB_URI!;
+    const uri = process.env.MONGODB_URI;
+
+    if (!uri) {
+      console.error("❌ MONGODB_URI environment variable is not set");
+      throw new Error("MONGODB_URI environment variable is not set");
+    }
+
+    console.log("🔄 Connecting to MongoDB...");
     client = new MongoClient(uri);
     await client.connect();
     db = client.db("toybiz");
 
+    console.log("📊 Creating database indexes...");
     // Create indexes for better performance
     const eventsCollection = db.collection("events");
     const registrationsCollection = db.collection("registrations");
-    const photosCollection = db.collection("photos");
 
     await Promise.all([
       eventsCollection.createIndex({ eventId: 1 }, { unique: true }),
@@ -21,9 +28,6 @@ export async function connectToDatabase() {
       eventsCollection.createIndex({ createdAt: -1 }),
       registrationsCollection.createIndex({ eventId: 1 }),
       registrationsCollection.createIndex({ registeredAt: -1 }),
-      photosCollection.createIndex({ photoId: 1 }, { unique: true }),
-      photosCollection.createIndex({ eventId: 1 }),
-      photosCollection.createIndex({ userId: 1 }),
     ]);
 
     console.log("✅ Connected to MongoDB Atlas");
@@ -34,7 +38,7 @@ export async function connectToDatabase() {
 export interface EventData {
   _id?: string;
   eventId: string;
-  userId: number;
+  userId?: string;
   eventType: string;
   brideName?: string;
   groomName?: string;
@@ -59,19 +63,6 @@ export interface Registration {
   registeredAt: Date;
 }
 
-export interface PhotoData {
-  _id?: string;
-  photoId: string;
-  eventId: string;
-  userId: number;
-  telegramFileId: string;
-  telegramUrl: string;
-  filename: string;
-  mimeType?: string;
-  fileSize?: number;
-  uploadedAt: Date;
-}
-
 // Get collections
 export async function getEventsCollection(): Promise<Collection<EventData>> {
   const { db } = await connectToDatabase();
@@ -83,11 +74,6 @@ export async function getRegistrationsCollection(): Promise<
 > {
   const { db } = await connectToDatabase();
   return db.collection<Registration>("registrations");
-}
-
-export async function getPhotosCollection(): Promise<Collection<PhotoData>> {
-  const { db } = await connectToDatabase();
-  return db.collection<PhotoData>("photos");
 }
 
 // Helper functions
@@ -102,7 +88,7 @@ export async function getEvent(eventId: string): Promise<EventData | null> {
   return await collection.findOne({ eventId });
 }
 
-export async function getUserEvents(userId: number): Promise<EventData[]> {
+export async function getUserEvents(userId: string): Promise<EventData[]> {
   const collection = await getEventsCollection();
   return await collection.find({ userId }).sort({ createdAt: -1 }).toArray();
 }
@@ -126,15 +112,4 @@ export async function getEventRegistrations(
 export async function getRegistrationCount(eventId: string): Promise<number> {
   const collection = await getRegistrationsCollection();
   return await collection.countDocuments({ eventId });
-}
-
-export async function savePhoto(photoData: PhotoData) {
-  const collection = await getPhotosCollection();
-  const result = await collection.insertOne(photoData);
-  return result.insertedId.toString();
-}
-
-export async function getEventPhotos(eventId: string): Promise<PhotoData[]> {
-  const collection = await getPhotosCollection();
-  return await collection.find({ eventId }).sort({ uploadedAt: 1 }).toArray();
 }

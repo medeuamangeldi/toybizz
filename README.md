@@ -1,13 +1,13 @@
-# ToyBiz - Telegram Event Invitation Bot
+# ToyBiz - Web-based Event Invitation Creator
 
-A Next.js application that runs a Telegram bot for creating beautiful event invitations (weddings, parties, etc.) with AI-generated HTML templates.
+A Next.js application that provides a beautiful web interface for creating event invitations (weddings, parties, etc.) with AI-generated HTML templates.
 
 ## 🚀 Quick Start
 
 1. **Visit the website:** [http://localhost:3000](http://localhost:3000)
-2. **Open Telegram bot:** [@toybizz_bot](https://t.me/toybizz_bot)
-3. **Send `/start`** to the bot
-4. **Follow the simple steps** to create your invitation
+2. **Choose "Create Invitation"** and fill out the form
+3. **Upload photos and music** (optional)
+4. **Select your preferred style**
 5. **Share the generated link** with your guests
 
 ## How It Works
@@ -106,11 +106,11 @@ data/                             # Guest registration files
 
 ## Technologies
 
-- **Next.js 15** - React framework
-- **Grammy** - Telegram bot framework
-- **OpenAI** - AI-generated HTML templates
+- **Next.js 15** - React framework with App Router
+- **MongoDB with GridFS** - Database and file storage
+- **OpenAI GPT-4** - AI-generated HTML invitation templates
 - **TypeScript** - Type safety
-- **Tailwind CSS** - Styling
+- **Tailwind CSS** - Modern styling framework
 
 ## License
 

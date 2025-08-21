@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { AuthProvider } from "@/contexts/AuthContext";
 
 export const metadata: Metadata = {
-  title: "Toybiz - Event Invitation Generator",
-  description: "Create beautiful event invitations with AI",
+  title: "Toybiz - Генератор приглашений на события",
+  description: "Создавайте красивые приглашения на события с помощью ИИ",
 };
 
 export default function RootLayout({
@@ -12,8 +13,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className="next-app">{children}</body>
+    <html lang="ru">
+      <body className="next-app">
+        <AuthProvider>
+          {children}
+        </AuthProvider>
+      </body>
     </html>
   );
 }

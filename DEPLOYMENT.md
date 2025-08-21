@@ -7,10 +7,11 @@
 In your Vercel dashboard, add these environment variables:
 
 ```bash
-TELEGRAM_BOT_TOKEN=your_bot_token_here
 OPENAI_API_KEY=your_openai_api_key_here
+MONGODB_URI=your_mongodb_connection_string
 NEXTAUTH_URL=https://your-app-name.vercel.app
 NEXTAUTH_SECRET=your_production_secret
+NEXT_PUBLIC_BASE_URL=https://your-app-name.vercel.app
 NODE_ENV=production
 ```
 
