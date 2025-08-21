@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getEvent } from "@/lib/database";
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { eventId: string } }
-) {
+interface PageProps {
+  params: Promise<{ eventId: string }>;
+}
+
+export async function GET(request: NextRequest, props: PageProps) {
   try {
+    const params = await props.params;
     const eventId = params.eventId;
     const event = await getEvent(eventId);
 
