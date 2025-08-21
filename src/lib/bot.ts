@@ -257,7 +257,8 @@ function createBot(): Bot<BotContext> {
         // Generate HTML with actual photo URLs
         const invitationHtml = await generateInvitation(
           eventDataForAI,
-          ctx.from!.id
+          ctx.from!.id,
+          eventId
         );
         console.log("✅ Invitation HTML generated successfully");
 
@@ -386,6 +387,50 @@ function createBot(): Bot<BotContext> {
   // Handle callback queries from inline keyboard buttons
   bot.on("callback_query:data", async (ctx) => {
     const data = ctx.callbackQuery.data;
+
+    // Handle style selection
+    if (data.startsWith("style_")) {
+      const styleMap: { [key: string]: string } = {
+        style_classic: "классический",
+        style_pink: "нежный_розовый",
+        style_blue: "яркий_синий",
+        style_gold: "золотой",
+        style_purple: "фиолетовый",
+        style_green: "зеленый",
+        style_orange: "оранжевый",
+        style_red: "красный",
+        style_minimal: "минимальный",
+        style_ocean: "морской",
+      };
+
+      const styleDisplayMap: { [key: string]: string } = {
+        style_classic: "🖤 Классический",
+        style_pink: "🌸 Нежный розовый",
+        style_blue: "🌈 Яркий синий",
+        style_gold: "✨ Золотой",
+        style_purple: "💜 Фиолетовый",
+        style_green: "🌿 Зеленый",
+        style_orange: "🧡 Оранжевый",
+        style_red: "❤️ Красный",
+        style_minimal: "🤍 Минимальный",
+        style_ocean: "🌊 Морской",
+      };
+
+      if (styleMap[data] && ctx.session.step === "style_preference") {
+        ctx.session.eventData.style = styleMap[data];
+        ctx.session.step = "media_upload";
+
+        await ctx.answerCallbackQuery();
+        return ctx.reply(
+          `✅ Выбрана тема: **${styleDisplayMap[data]}**\n\n` +
+            "📸 Теперь отправьте фотографии для приглашения!\n\n" +
+            "📏 Ограничения:\n" +
+            "• Максимум 20 МБ на фото\n" +
+            "• Поддерживаются только фотографии\n\n" +
+            "Отправьте фото или нажмите /done если фото не нужны"
+        );
+      }
+    }
 
     if (data.startsWith("info_")) {
       const eventId = data.replace("info_", "");
@@ -553,44 +598,42 @@ function createBot(): Bot<BotContext> {
       case "event_location":
         ctx.session.eventData.location = text;
         ctx.session.step = "style_preference";
-        return ctx.reply(
-          "🎨 Выберите стиль приглашения:\n\n" +
-            "1️⃣ **Классический** - Черно-белый, строгий, элегантный\n" +
-            "   ⚫ Подходит для: официальных мероприятий, деловых встреч\n\n" +
-            "2️⃣ **Нежный** - Пастельные тона, мягкие оттенки\n" +
-            "   🌸 Подходит для: свадьб, детских праздников, романтических событий\n\n" +
-            "3️⃣ **Яркий** - Насыщенные цвета, выразительный дизайн\n" +
-            "   🌈 Подходит для: вечеринок, молодежных мероприятий, празднований\n\n" +
-            "4️⃣ **Золотой** - Золотые акценты, премиум-стиль\n" +
-            "   ✨ Подходит для: юбилеев, важных торжеств, VIP-событий\n\n" +
-            "5️⃣ **Минимальный** - Очень простой, чистый дизайн\n" +
-            "   ⚪ Подходит для: современных мероприятий, бизнес-встреч\n\n" +
-            "Напишите номер от 1 до 5 ⬆️"
-        );
 
-      case "style_preference":
-        const styleMap: { [key: string]: string } = {
-          "1": "классический",
-          "2": "нежный",
-          "3": "яркий",
-          "4": "золотой",
-          "5": "минимальный",
+        // Create inline keyboard with color combinations
+        const styleKeyboard = {
+          inline_keyboard: [
+            [
+              { text: "🖤 Классический", callback_data: "style_classic" },
+              { text: "🌸 Нежный розовый", callback_data: "style_pink" },
+            ],
+            [
+              { text: "🌈 Яркий синий", callback_data: "style_blue" },
+              { text: "✨ Золотой", callback_data: "style_gold" },
+            ],
+            [
+              { text: "💜 Фиолетовый", callback_data: "style_purple" },
+              { text: "🌿 Зеленый", callback_data: "style_green" },
+            ],
+            [
+              { text: "🧡 Оранжевый", callback_data: "style_orange" },
+              { text: "❤️ Красный", callback_data: "style_red" },
+            ],
+            [
+              { text: "🤍 Минимальный", callback_data: "style_minimal" },
+              { text: "🌊 Морской", callback_data: "style_ocean" },
+            ],
+          ],
         };
 
-        if (styleMap[text]) {
-          ctx.session.eventData.style = styleMap[text];
-          ctx.session.step = "media_upload";
-          return ctx.reply(
-            `✅ Выбран стиль: **${styleMap[text]}**\n\n` +
-              "📸 Теперь отправьте фотографии для приглашения!\n\n" +
-              "📏 Ограничения:\n" +
-              "• Максимум 20 МБ на фото\n" +
-              "• Поддерживаются только фотографии\n\n" +
-              "Отправьте фото или нажмите /done если фото не нужны"
-          );
-        } else {
-          return ctx.reply("❌ Выберите стиль от 1 до 5");
-        }
+        return ctx.reply("🎨 Выберите цветовую тему приглашения:", {
+          reply_markup: styleKeyboard,
+        });
+
+      case "style_preference":
+        // This is now handled by callback queries, not text input
+        return ctx.reply(
+          "🎨 Пожалуйста, выберите цветовую тему из кнопок выше ⬆️"
+        );
 
       default:
         return ctx.reply("Используйте /start для начала работы с ботом");
@@ -628,7 +671,8 @@ function createBot(): Bot<BotContext> {
 // Generate invitation HTML using OpenAI
 async function generateInvitation(
   eventData: SessionData["eventData"],
-  userId: number
+  userId: number,
+  eventId: string
 ): Promise<string> {
   console.log("🔄 Generating invitation with data:", eventData);
 
@@ -660,61 +704,91 @@ ${(() => {
 - Background: bg-white or bg-gray-50
 - Text: text-gray-900 (black) for headers, text-gray-700 for content
 - Typography: font-serif EVERYWHERE
-- Borders: border-gray-900 (black borders), not gray-200
+- Borders: border-gray-900 (black borders)
 - Buttons: bg-gray-900 text-white
-- Accents: ONLY black, white, and subtle grays
-- NO colors except black/white/gray!`;
+- Accents: ONLY black, white, and subtle grays`;
 
-    case "нежный":
-      return `🌸 НЕЖНЫЙ STYLE - Soft Pastels & Romance:
-- Background: bg-rose-50 or bg-pink-50 (light pink background)
-- Headers: text-rose-600 or text-pink-600 (pink headers)
-- Content text: text-rose-700 or text-purple-600
-- Typography: font-sans with gentle curves
-- Borders: border-rose-200 or border-pink-200 (soft pink borders)
-- Buttons: bg-rose-500 hover:bg-rose-600 text-white (pink buttons)
-- Accents: rose-100, pink-100, purple-50, lavender tones
-- Hearts: Use ♡ 💕 🌸 symbols
-- Soft shadows: shadow-lg shadow-rose-100
-- NO gray colors! ONLY soft pastels!`;
+    case "нежный_розовый":
+      return `🌸 НЕЖНЫЙ РОЗОВЫЙ STYLE - Soft Pink Romance:
+- Background: bg-rose-50 or bg-pink-50
+- Headers: text-rose-600 or text-pink-600
+- Content: text-rose-700
+- Borders: border-rose-200 
+- Buttons: bg-rose-500 hover:bg-rose-600 text-white
+- Accents: rose-100, pink-100, soft pastels only`;
 
-    case "яркий":
-      return `🌈 ЯРКИЙ STYLE - Bold & Vibrant:
-- Background: bg-gradient-to-br from-blue-400 to-purple-600
-- Headers: text-white or text-yellow-300 (bright contrast)
+    case "яркий_синий":
+      return `🌈 ЯРКИЙ СИНИЙ STYLE - Vibrant Blue:
+- Background: bg-gradient-to-br from-blue-400 to-blue-600
+- Headers: text-white or text-blue-100
 - Content: text-blue-900 on light sections
-- Typography: font-bold and font-black
-- Borders: border-blue-500 or border-purple-500 (bright borders)
-- Buttons: bg-yellow-400 text-blue-900 hover:bg-yellow-300
-- Accents: blue-600, purple-600, yellow-400, orange-500
-- Celebrations: Use 🎉 ✨ 🎊 symbols
-- Strong shadows: shadow-xl shadow-blue-500/50
-- MUST be colorful and energetic!`;
+- Borders: border-blue-500
+- Buttons: bg-blue-600 hover:bg-blue-700 text-white
+- Accents: blue-500, blue-600, sky-400`;
 
     case "золотой":
-      return `✨ ЗОЛОТОЙ STYLE - Luxury Gold Theme:
+      return `✨ ЗОЛОТОЙ STYLE - Luxury Gold:
 - Background: bg-gradient-to-br from-yellow-50 to-amber-100
-- Headers: text-yellow-700 or text-amber-800 (gold text)
+- Headers: text-yellow-700 or text-amber-800
 - Content: text-yellow-800
-- Typography: font-serif with elegant styling
-- Borders: border-yellow-400 or border-amber-400 (gold borders)  
+- Borders: border-yellow-400
 - Buttons: bg-gradient-to-r from-yellow-500 to-amber-600 text-white
-- Accents: yellow-100, amber-200, gold tones throughout
-- Luxury symbols: Use ✨ 👑 💎 symbols
-- Premium shadows: shadow-2xl shadow-yellow-500/30
-- EVERYTHING must have gold/amber/yellow theme!`;
+- Accents: yellow-100, amber-200, gold tones`;
+
+    case "фиолетовый":
+      return `💜 ФИОЛЕТОВЫЙ STYLE - Purple Elegance:
+- Background: bg-gradient-to-br from-purple-50 to-violet-100
+- Headers: text-purple-700 or text-violet-800
+- Content: text-purple-800
+- Borders: border-purple-400
+- Buttons: bg-purple-600 hover:bg-purple-700 text-white
+- Accents: purple-100, violet-200, lavender tones`;
+
+    case "зеленый":
+      return `🌿 ЗЕЛЕНЫЙ STYLE - Natural Green:
+- Background: bg-gradient-to-br from-green-50 to-emerald-100
+- Headers: text-green-700 or text-emerald-800
+- Content: text-green-800
+- Borders: border-green-400
+- Buttons: bg-green-600 hover:bg-green-700 text-white
+- Accents: green-100, emerald-200, forest tones`;
+
+    case "оранжевый":
+      return `🧡 ОРАНЖЕВЫЙ STYLE - Warm Orange:
+- Background: bg-gradient-to-br from-orange-50 to-amber-100
+- Headers: text-orange-700 or text-amber-800
+- Content: text-orange-800
+- Borders: border-orange-400
+- Buttons: bg-orange-600 hover:bg-orange-700 text-white
+- Accents: orange-100, amber-200, sunset tones`;
+
+    case "красный":
+      return `❤️ КРАСНЫЙ STYLE - Bold Red:
+- Background: bg-gradient-to-br from-red-50 to-rose-100
+- Headers: text-red-700 or text-rose-800
+- Content: text-red-800
+- Borders: border-red-400
+- Buttons: bg-red-600 hover:bg-red-700 text-white
+- Accents: red-100, rose-200, crimson tones`;
+
+    case "морской":
+      return `🌊 МОРСКОЙ STYLE - Ocean Blue:
+- Background: bg-gradient-to-br from-cyan-50 to-teal-100
+- Headers: text-cyan-700 or text-teal-800
+- Content: text-cyan-800
+- Borders: border-cyan-400
+- Buttons: bg-cyan-600 hover:bg-cyan-700 text-white
+- Accents: cyan-100, teal-200, ocean tones`;
 
     default:
-      return `⚪ МИНИМАЛЬНЫЙ STYLE - Ultra Clean:
+      return `🤍 МИНИМАЛЬНЫЙ STYLE - Ultra Clean:
 - Background: bg-white only
 - Headers: text-gray-900 (pure black)
 - Content: text-gray-600
-- Typography: font-sans clean and simple
-- Borders: border-gray-100 only (very subtle)
-- Buttons: bg-gray-900 text-white (simple black)
+- Borders: border-gray-100 (very subtle)
+- Buttons: bg-gray-900 text-white
 - Accents: ONLY white, gray-50, gray-100
-- Maximum whitespace, minimal elements
-- NO colors at all - pure minimalism!`;
+- Maximum whitespace, minimal elements`;
   }
 })()}
 
@@ -728,15 +802,48 @@ ${eventData.photos
     (photo, i) =>
       `<img src="${photo}" alt="Фото ${
         i + 1
-      }" class="rounded-lg shadow-md hover:shadow-lg transition-shadow">`
+      }" class="w-full rounded-lg shadow-md hover:shadow-lg transition-all duration-500 opacity-0 animate-fade-in" data-aos="fade-up" data-aos-delay="${
+        i * 200
+      }">`
   )
   .join("\n")}
 
-- Grid layout: grid grid-cols-2 gap-4
+- IMPORTANT: Photos in ONE COLUMN (w-full), not grid!
+- Use: flex flex-col gap-6 for photo container
+- Each photo: w-full rounded-lg shadow-md
 - Style photos according to the ${eventData.style} theme
 - NEVER use placeholder images!`
     : `- No photos provided`
 }
+
+🎬 ANIMATION REQUIREMENTS:
+- Add scroll animations using AOS (Animate On Scroll)
+- Include: <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+- Include: <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+- Initialize: AOS.init({duration: 800, once: true});
+- Header section: data-aos="fade-down"
+- Event details: data-aos="fade-right" data-aos-delay="200"
+- Photos: data-aos="fade-up" with staggered delays (200ms, 400ms, 600ms...)
+- Form: data-aos="fade-up" data-aos-delay="300"
+- Use smooth transitions: transition-all duration-500
+
+🎵 MUSIC PLAYER:
+- Add a floating music button (top-right corner)
+- Button: fixed top-4 right-4 z-50 with music note emoji 🎵
+- Use this open source melody: https://www.soundjay.com/misc/sounds/bell-ringing-05.wav
+- Button toggles play/pause with visual feedback
+- Style according to chosen color theme
+- Code: <button id="musicBtn" class="fixed top-4 right-4 z-50 bg-{themeColor} text-white p-3 rounded-full shadow-lg hover:shadow-xl transition-all">🎵</button>
+- Add JavaScript for play/pause functionality
+
+📱 LAYOUT STRUCTURE:
+1. Header with event title (animated fade-down)
+2. Event details section (animated fade-right)  
+3. Photos section in ONE COLUMN (animated fade-up with staggered delays)
+4. Registration form AT THE END (animated fade-up)
+- Use: max-w-2xl mx-auto px-4 py-8 for main container
+- Sections: space-y-12 for good spacing
+- Mobile-first responsive design
 
 FORM REQUIREMENTS:
 - Russian labels: "Полное имя", "Количество гостей"
@@ -760,6 +867,11 @@ EVENT SYMBOL: ${
 4. Include <script src="/js/form-handler.js"></script> before </body>
 5. All text in Russian
 6. Mobile responsive
+7. MUST include AOS animations on ALL sections
+8. Photos in ONE COLUMN layout (not grid)
+9. Music player button with play/pause functionality
+10. Form positioned at the very bottom
+11. Smooth scroll behavior and transitions
 
 Return ONLY HTML code without markdown formatting.`;
 
@@ -789,8 +901,7 @@ Return ONLY HTML code without markdown formatting.`;
       .replace(/^```/gm, "")
       .trim();
 
-    // Replace placeholder with actual event ID
-    const eventId = `event_${Date.now()}_${userId}`;
+    // Replace placeholder with actual event ID (passed as parameter)
     html = html.replace(/EVENT_ID_PLACEHOLDER/g, eventId);
     console.log("✅ HTML generated and event ID replaced");
 
