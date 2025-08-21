@@ -1,36 +1,117 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ToyBiz - Telegram Event Invitation Bot
 
-## Getting Started
+A Next.js application that runs a Telegram bot for creating beautiful event invitations (weddings, parties, etc.) with AI-generated HTML templates.
 
-First, run the development server:
+## 🚀 Quick Start
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+1. **Visit the website:** [http://localhost:3000](http://localhost:3000)
+2. **Open Telegram bot:** [@toybizz_bot](https://t.me/toybizz_bot)
+3. **Send `/start`** to the bot
+4. **Follow the simple steps** to create your invitation
+5. **Share the generated link** with your guests
+
+## How It Works
+
+1. **Chat with the bot** - Tell it about your event (wedding, birthday, etc.)
+2. **Provide details** - Name, date, time, location, description
+3. **Add photos/videos** - Optional media to make it special
+4. **AI creates HTML** - Beautiful, responsive invitation page
+5. **Get shareable link** - `http://localhost:3000/invitations/your-event-id`
+6. **Track guests** - Built-in registration form and analytics
+
+## Bot Commands
+
+- `/start` - Welcome message and instructions
+- `/create` - Create a new event invitation
+- `/stats <event_id>` - View registration statistics
+- `/list <event_id>` - Get list of registered guests
+- `/help` - Show help information
+
+## Features
+
+- 🤖 **Simple Telegram Interface** - No complex forms, just chat
+- 🎨 **AI-Generated Design** - Beautiful, unique invitations via OpenAI
+- 📱 **Mobile Responsive** - Perfect on all devices
+- 📝 **Guest Registration** - Embedded RSVP forms
+- 📊 **Real-time Analytics** - Track who's coming
+- 🇷🇺 **Russian Language** - Fully localized
+
+## Setup for Developers
+
+### Prerequisites
+
+- Node.js 18+
+- Telegram Bot Token from [@BotFather](https://t.me/BotFather)
+- OpenAI API Key from [OpenAI Platform](https://platform.openai.com/)
+
+### Environment Variables
+
+Create `.env.local`:
+
+```env
+TELEGRAM_BOT_TOKEN=your_telegram_bot_token
+OPENAI_API_KEY=your_openai_api_key
+NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=your_secret_here
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Installation & Run
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+# Install dependencies
+npm install
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+# Development (recommended)
+npm run start:dev     # Runs both Next.js + Bot in polling mode
 
-## Learn More
+# Or run separately:
+npm run dev          # Next.js server only
+npm run bot:dev      # Telegram bot only (polling mode)
 
-To learn more about Next.js, take a look at the following resources:
+# Production setup (for Vercel)
+npm run build        # Builds app + sets webhook
+npm start            # Runs Next.js (bot works via webhook)
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Project Structure
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+src/
+├── app/
+│   ├── api/
+│   │   ├── webhook/route.ts      # Telegram webhook (optional)
+│   │   └── register/route.ts     # Guest registration
+│   ├── invitations/[eventId]/
+│   │   └── page.tsx              # Display generated invitations
+│   └── page.tsx                  # Simple landing page
+├── lib/
+│   └── bot.ts                    # Telegram bot logic & OpenAI integration
+public/
+├── invitations/                  # Generated HTML files (created by bot)
+└── js/form-handler.js           # Interactive registration forms
+data/                             # Guest registration files
+```
 
-## Deploy on Vercel
+## Example Workflow
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. User chats with [@toybizz_bot](https://t.me/toybizz_bot)
+2. Bot collects: event type, name, date, time, location, description
+3. User uploads photos/videos (optional)
+4. Bot calls OpenAI to generate beautiful HTML
+5. HTML saved to `public/invitations/event_123456_userid.html`
+6. Bot returns link: `http://localhost:3000/invitations/event_123456_userid`
+7. Guests visit link, see invitation, fill registration form
+8. Registration data saved to `data/event_123456_userid_registrations.txt`
+9. User can check `/stats` and `/list` anytime
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Technologies
+
+- **Next.js 15** - React framework
+- **Grammy** - Telegram bot framework
+- **OpenAI** - AI-generated HTML templates
+- **TypeScript** - Type safety
+- **Tailwind CSS** - Styling
+
+## License
+
+MIT License

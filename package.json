@@ -3,25 +3,37 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "concurrently \"next dev\" \"npm run bot:dev\"",
+    "dev:next": "next dev",
+    "build": "next build && tsx scripts/setup-bot.ts",
     "start": "next start",
-    "lint": "eslint"
+    "start:dev": "concurrently \"npm run dev\" \"npm run bot:dev\"",
+    "bot:dev": "tsx scripts/bot.ts",
+    "bot:setup": "tsx scripts/setup-bot.ts",
+    "lint": "eslint",
+    "setup": "./scripts/setup.sh"
   },
   "dependencies": {
+    "@types/multer": "^2.0.0",
+    "dotenv": "^17.2.1",
+    "grammy": "^1.38.1",
+    "multer": "^2.0.2",
+    "next": "15.5.0",
+    "openai": "^5.13.1",
     "react": "19.1.0",
-    "react-dom": "19.1.0",
-    "next": "15.5.0"
+    "react-dom": "19.1.0"
   },
   "devDependencies": {
-    "typescript": "^5",
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@tailwindcss/postcss": "^4",
-    "tailwindcss": "^4",
+    "concurrently": "^9.2.0",
     "eslint": "^9",
     "eslint-config-next": "15.5.0",
-    "@eslint/eslintrc": "^3"
+    "tailwindcss": "^4",
+    "tsx": "^4.20.4",
+    "typescript": "^5"
   }
 }

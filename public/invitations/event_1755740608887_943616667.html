@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Свадьба Приглашение</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #F8F8F8;
+        }
+    </style>
+</head>
+<body class="font-serif bg-white text-gray-900">
+    <div class="max-w-2xl mx-auto p-8">
+        <!-- Hero Section -->
+        <div class="text-center py-12">
+            <h1 class="text-3xl text-gray-900">Свадьба</h1>
+            <p class="text-lg text-gray-600 mt-4">Мейрам & Ажара</p>
+        </div>
+
+        <!-- Event Details -->
+        <div class="border-b border-gray-200 py-8">
+            <p class="text-lg text-gray-600">Дата: <strong>15 сент 2023</strong></p>
+            <p class="text-lg text-gray-600">Время: <strong>19:00</strong></p>
+            <p class="text-lg text-gray-600">Местоположение: <strong>Астана</strong></p>
+        </div>
+
+        <!-- Photo Gallery -->
+        <div class="grid grid-cols-2 gap-4 mt-8">
+            <img src="/photos/photo_1755740598121_943616667.jpg" alt="Фото 1" class="border border-gray-200 rounded-lg hover:shadow-md transition-shadow">
+            <img src="/photos/photo_1755740599350_943616667.jpg" alt="Фото 2" class="border border-gray-200 rounded-lg hover:shadow-md transition-shadow">
+        </div>
+
+        <!-- Registration Section -->
+        <div class="mt-12 py-8 border-t border-gray-200">
+            <h2 class="text-2xl text-gray-900 text-center">Подтвердите участие</h2>
+            <form action="/api/register" method="POST" class="mt-6">
+                <div class="mb-4">
+                    <label for="fullName" class="block text-gray-600">Полное имя</label>
+                    <input type="text" id="fullName" name="fullName" required class="w-full p-3 border border-gray-300 rounded focus:border-gray-500">
+                </div>
+                <div class="mb-4">
+                    <label for="peopleCount" class="block text-gray-600">Количество гостей</label>
+                    <input type="number" id="peopleCount" name="peopleCount" required class="w-full p-3 border border-gray-300 rounded focus:border-gray-500">
+                </div>
+                <input type="hidden" name="eventId" value="event_1755740608886_943616667">
+                <div class="text-center">
+                    <button type="submit" class="bg-gray-900 text-white px-6 py-3 rounded mt-4 hover:bg-gray-700 transition-colors">
+                        Зарегистрироваться на мероприятие
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/js/form-handler.js"></script>
+</body>
+</html>
