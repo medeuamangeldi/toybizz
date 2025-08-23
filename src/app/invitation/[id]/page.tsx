@@ -3,7 +3,6 @@ import { ObjectId } from "mongodb";
 import { notFound } from "next/navigation";
 import { InvitationData } from "@/components/InvitationTemplate";
 import ClientInvitationWrapper from "@/components/ClientInvitationWrapper";
-import { getFileUrl } from "@/lib/url-utils";
 
 interface InvitationPageProps {
   params: Promise<{
@@ -37,76 +36,28 @@ export default async function InvitationViewPage({
       notFound();
     }
 
-    // Parse the JSON content from htmlContent field
-    let invitationData: InvitationData;
-    try {
-      // If htmlContent is JSON, parse it
-      if (invitation.htmlContent && invitation.htmlContent.startsWith("{")) {
-        invitationData = JSON.parse(invitation.htmlContent);
-        // Map photo IDs to URLs
-        if (invitation.photoUrls && invitation.photoUrls.length > 0) {
-          invitationData.photos = invitation.photoUrls.map((photoId: string) =>
-            getFileUrl(photoId, "photos")
-          );
-        }
-        // Handle melody URL
-        if (invitation.melodyUrl) {
-          invitationData.melody = invitation.melodyUrl.startsWith("/")
-            ? invitation.melodyUrl
-            : `/api/files/melodies/${invitation.melodyUrl}`;
-        }
-      } else {
-        // Fallback: create data from existing fields for backward compatibility
-        invitationData = {
-          title: invitation.title || invitation.name || "Приглашение",
-          type: invitation.eventType || invitation.type || "событие",
-          date: invitation.date || "Дата не указана",
-          time: invitation.time || "00:00",
-          location: invitation.location || "Место не указано",
-          theme: invitation.theme || "elegant",
-          description:
-            invitation.description || "Присоединяйтесь к нашему празднику!",
-          schedule: invitation.schedule || [],
-          photos:
-            invitation.photoUrls?.map((photoId: string) =>
-              getFileUrl(photoId, "photos")
-            ) || [],
-          melody: invitation.melodyUrl
-            ? invitation.melodyUrl.startsWith("/")
-              ? invitation.melodyUrl
-              : `/api/files/melodies/${invitation.melodyUrl}`
-            : undefined,
-          rsvpText: "Подтвердить участие",
-          eventId: invitation.eventId || id,
-          eventType: invitation.eventType || invitation.type || "",
-        };
-      }
-    } catch (error) {
-      console.error("Error parsing invitation data:", error);
-      // Fallback data
-      invitationData = {
-        title: invitation.title || "Приглашение",
-        type: invitation.eventType || invitation.type || "событие",
-        date: invitation.date || "Дата не указана",
-        time: invitation.time || "00:00",
-        location: invitation.location || "Место не указано",
-        theme: invitation.theme || "elegant",
-        description: "Присоединяйтесь к нашему празднику!",
-        schedule: [],
-        photos:
-          invitation.photoUrls?.map((photoId: string) =>
-            getFileUrl(photoId, "photos")
-          ) || [],
-        melody: invitation.melodyUrl
-          ? invitation.melodyUrl.startsWith("/")
-            ? invitation.melodyUrl
-            : `/api/files/melodies/${invitation.melodyUrl}`
-          : undefined,
-        rsvpText: "Подтвердить участие",
-        eventId: invitation.eventId || id,
-        eventType: invitation.eventType || invitation.type || "",
-      };
-    }
+    // Build invitation data from document fields instead of parsing htmlContent
+    const invitationData: InvitationData = {
+      title: invitation.title || invitation.name || "Приглашение",
+      type: invitation.eventType || invitation.type || "событие",
+      date: invitation.date || "Дата не указана",
+      time: invitation.time || "00:00",
+      location: invitation.location || "Место не указано",
+      theme: invitation.theme || invitation.style || "elegant",
+      description:
+        invitation.description || "Присоединяйтесь к нашему празднику!",
+      schedule: invitation.schedule || [],
+      // Photos come from photoUrls array, not from contentData
+      photos: invitation.photoUrls?.map((photoId: string) => photoId) || [],
+      melody: invitation.melodyUrl
+        ? invitation.melodyUrl.startsWith("/")
+          ? invitation.melodyUrl
+          : `/api/files/melodies/${invitation.melodyUrl}`
+        : undefined,
+      rsvpText: invitation.rsvpText || "Подтвердить участие",
+      eventId: invitation.eventId || id,
+      eventType: invitation.eventType || invitation.type || "",
+    };
 
     const theme = invitation.theme || "elegant";
 

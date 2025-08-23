@@ -242,15 +242,16 @@ export async function POST(request: NextRequest) {
       date: eventData.date,
       time: eventData.time,
       location: eventData.location,
+      description: parsedContent.description || "",
       language: eventData.language,
       style: eventData.style,
       theme: eventData.style, // Store theme for template system
       customStyle: eventData.customStyle,
-      schedule: eventData.schedule || [], // Add schedule to document
-      photoUrls: photoUrls,
+      schedule: parsedContent.schedule || eventData.schedule || [], // Add schedule to document
+      rsvpText: parsedContent.rsvpText || "Подтвердить участие",
+      photoUrls: photoUrls, // Photos stored separately from content
       melodyUrl: melodyUrl,
-      htmlContent: jsonContent, // Store JSON content instead of HTML
-      contentData: parsedContent, // Also store parsed version for easy access
+      htmlContent: jsonContent, // Keep for backward compatibility, but don't duplicate photos
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };

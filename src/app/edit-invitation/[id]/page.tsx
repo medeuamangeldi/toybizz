@@ -67,67 +67,32 @@ export default function EditInvitationPage() {
 
       const invitation = await response.json();
 
-      // Parse content data
-      let contentData: InvitationData;
-      try {
-        if (invitation.htmlContent && invitation.htmlContent.startsWith("{")) {
-          contentData = JSON.parse(invitation.htmlContent);
-          // Map photo IDs to URLs
-          if (invitation.photoUrls && invitation.photoUrls.length > 0) {
-            contentData.photos = invitation.photoUrls.map(
-              (photoId: string) => `${photoId}`
-            );
-          }
-          // Handle melody URL
-          if (invitation.melodyUrl) {
-            contentData.melody = invitation.melodyUrl.startsWith("/")
-              ? invitation.melodyUrl
-              : `/api/files/melodies/${invitation.melodyUrl}`;
-          }
-        } else {
-          // Create from existing fields for backward compatibility
-          contentData = {
-            title: invitation.title || invitation.name || "Приглашение",
-            type: invitation.eventType || invitation.type || "событие",
-            date: invitation.date || "Дата не указана",
+      // Build content data from document fields instead of parsing htmlContent
+      const contentData: InvitationData = {
+        title: invitation.title || invitation.name || "Приглашение",
+        type: invitation.eventType || invitation.type || "событие",
+        date: invitation.date || "Дата не указана",
+        time: invitation.time || "00:00",
+        location: invitation.location || "Место не указано",
+        theme: invitation.theme || invitation.style || "elegant",
+        description:
+          invitation.description || "Присоединяйтесь к нашему празднику!",
+        schedule: invitation.schedule || [
+          {
             time: invitation.time || "00:00",
-            location: invitation.location || "Место не указано",
-            theme: invitation.theme || "elegant",
-            description: "Присоединяйтесь к нашему празднику!",
-            schedule: [
-              {
-                time: invitation.time || "00:00",
-                activity: "Основное мероприятие",
-              },
-            ],
-            photos:
-              invitation.photoUrls?.map((photoId: string) => `${photoId}`) ||
-              [],
-            melody: invitation.melodyUrl
-              ? invitation.melodyUrl.startsWith("/")
-                ? invitation.melodyUrl
-                : `/api/files/melodies/${invitation.melodyUrl}`
-              : undefined,
-            rsvpText: "Подтвердить участие",
-            eventId: eventId,
-          };
-        }
-      } catch (parseError) {
-        console.error("Error parsing invitation data:", parseError);
-        contentData = {
-          title: invitation.title || "Приглашение",
-          type: invitation.eventType || invitation.type || "событие",
-          date: invitation.date || "Дата не указана",
-          time: invitation.time || "00:00",
-          location: invitation.location || "Место не указано",
-          theme: invitation.theme || "elegant",
-          description: "Присоединяйтесь к нашему празднику!",
-          schedule: [],
-          photos: [],
-          rsvpText: "Подтвердить участие",
-          eventId: eventId,
-        };
-      }
+            activity: "Основное мероприятие",
+          },
+        ],
+        // Photos come from photoUrls array, not from contentData
+        photos: invitation.photoUrls?.map((photoId: string) => photoId) || [],
+        melody: invitation.melodyUrl
+          ? invitation.melodyUrl.startsWith("/")
+            ? invitation.melodyUrl
+            : `/api/files/melodies/${invitation.melodyUrl}`
+          : undefined,
+        rsvpText: invitation.rsvpText || "Подтвердить участие",
+        eventId: eventId,
+      };
 
       setInvitationData(contentData);
       setSelectedTheme(invitation.theme || invitation.style || "elegant");

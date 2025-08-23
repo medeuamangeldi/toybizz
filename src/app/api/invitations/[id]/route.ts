@@ -82,15 +82,18 @@ export async function PUT(request: NextRequest, props: PageProps) {
     const { db } = await connectToDatabase();
     const eventsCollection = db.collection("events");
 
-    // Prepare update data
+    // Prepare update data - store in document fields, not in contentData
     const updateData = {
-      htmlContent: JSON.stringify(contentData, null, 2),
-      contentData: contentData,
       theme: theme || "elegant",
       title: contentData.title,
       name: contentData.title, // For backward compatibility
       date: contentData.date,
+      time: contentData.time || "00:00",
       location: contentData.location,
+      description: contentData.description || "",
+      schedule: contentData.schedule || [],
+      rsvpText: contentData.rsvpText || "Подтвердить участие",
+      // Note: photos are managed separately via photoUrls array, not in contentData
       updatedAt: new Date().toISOString(),
     };
 

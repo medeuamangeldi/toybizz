@@ -39,18 +39,31 @@ export interface EventData {
   _id?: string;
   eventId: string;
   userId?: string;
+  title: string;
+  name?: string; // For backward compatibility
   eventType: string;
+  type?: string; // For backward compatibility
   brideName?: string;
   groomName?: string;
   eventName?: string;
   date: string;
   time: string;
   location: string;
+  description?: string;
+  language?: string;
+  style?: string;
+  theme?: string;
+  customStyle?: string;
+  schedule?: { time: string; activity: string; event?: string }[];
+  rsvpText?: string;
   additionalInfo?: string;
-  photos: string[];
-  htmlContent: string;
+  photoUrls: string[]; // Array of photo file IDs
+  melodyUrl?: string; // Melody file ID or URL
+  photos: string[]; // Deprecated - use photoUrls instead
+  htmlContent: string; // For backward compatibility
   stylePreference: number;
   createdAt: Date;
+  updatedAt?: string;
 }
 
 export interface Registration {
