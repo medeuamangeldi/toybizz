@@ -8,35 +8,12 @@ export function getBaseUrl(): string {
     return window.location.origin;
   }
 
-  // Server-side environment variable checks
-  // 1. Check for Vercel production environment first
-  if (process.env.VERCEL_ENV === "production" && process.env.VERCEL_URL) {
-    return `https://${process.env.VERCEL_URL}`;
-  }
-
-  // 2. Check for custom domain in Vercel
-  if (
-    process.env.VERCEL_ENV === "production" &&
-    process.env.VERCEL_PROJECT_PRODUCTION_URL
-  ) {
-    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
-  }
-
-  // 3. Check for explicitly set public URL (but only if not localhost in production)
-  if (
-    process.env.NEXT_PUBLIC_BASE_URL &&
-    (!process.env.VERCEL ||
-      !process.env.NEXT_PUBLIC_BASE_URL.includes("localhost"))
-  ) {
+  // Server-side: prioritize NEXT_PUBLIC_BASE_URL
+  if (process.env.NEXT_PUBLIC_BASE_URL) {
     return process.env.NEXT_PUBLIC_BASE_URL;
   }
 
-  // 4. Check for any Vercel URL (preview or development)
-  if (process.env.VERCEL_URL) {
-    return `https://${process.env.VERCEL_URL}`;
-  }
-
-  // 5. Default to localhost for local development
+  // Fallback to localhost for development
   return "http://localhost:3000";
 }
 
