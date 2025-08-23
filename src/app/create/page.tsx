@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/contexts/AuthContext";
 import GiftRegistry from "@/components/GiftRegistry";
+import { getFileUrl } from "@/lib/url-utils";
 
 interface ScheduleItem {
   time: string;
@@ -29,6 +30,7 @@ export default function CreateInvitation() {
   const { user, logout } = useAuth();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [creatingWithGifts, setCreatingWithGifts] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [createdEventId, setCreatedEventId] = useState<string | null>(null);
@@ -146,8 +148,129 @@ export default function CreateInvitation() {
 
     try {
       for (const file of files) {
+        let fileToUpload = file;
+
+        // Check if it's a HEIC file and convert on client-side
+        const isHeic =
+          file.type.toLowerCase().includes("heic") ||
+          file.type.toLowerCase().includes("heif") ||
+          file.name.toLowerCase().endsWith(".heic") ||
+          file.name.toLowerCase().endsWith(".heif");
+
+        if (isHeic) {
+          try {
+            // Dynamic import of heic2any
+            const heic2anyModule = await import("heic2any");
+            const heic2any = heic2anyModule.default;
+
+            // Check if heic2any loaded properly
+            if (!heic2any || typeof heic2any !== "function") {
+              throw new Error("heic2any library not loaded properly");
+            }
+
+            // Log file details for debugging
+            console.log("Converting HEIC file:", {
+              name: file.name,
+              size: file.size,
+              type: file.type,
+            });
+
+            const convertedBlob = await heic2any({
+              blob: file,
+              toType: "image/jpeg",
+              quality: 0.9,
+            });
+
+            // Ensure we have a blob result
+            if (!convertedBlob) {
+              throw new Error("Conversion returned null/undefined");
+            }
+
+            // Convert blob to file
+            const convertedFile = new File(
+              [convertedBlob as Blob],
+              file.name.replace(/\.(heic|heif)$/i, ".jpg"),
+              { type: "image/jpeg" }
+            );
+
+            console.log("HEIC conversion successful:", {
+              originalSize: file.size,
+              convertedSize: convertedFile.size,
+            });
+
+            fileToUpload = convertedFile;
+          } catch (conversionError) {
+            console.error("HEIC conversion failed:", {
+              error: conversionError,
+              errorMessage:
+                conversionError instanceof Error
+                  ? conversionError.message
+                  : typeof conversionError === "object" &&
+                    conversionError !== null &&
+                    "message" in conversionError
+                  ? String((conversionError as { message: unknown }).message)
+                  : String(conversionError),
+              fileName: file.name,
+              fileSize: file.size,
+              fileType: file.type,
+            });
+
+            // Check if it's a format support error
+            let errorMsg = "";
+            if (conversionError instanceof Error) {
+              errorMsg = conversionError.message;
+            } else if (
+              typeof conversionError === "object" &&
+              conversionError !== null &&
+              "message" in conversionError
+            ) {
+              errorMsg = String(
+                (conversionError as { message: unknown }).message
+              );
+            } else {
+              errorMsg = String(conversionError);
+            }
+
+            if (
+              errorMsg.includes("format not supported") ||
+              errorMsg.includes("ERR_LIBHEIF") ||
+              errorMsg.includes("HEIF image not found")
+            ) {
+              // Check if it's actually a HEIC file or just has the wrong extension
+              const actuallyHeic =
+                file.type.toLowerCase().includes("heic") ||
+                file.type.toLowerCase().includes("heif");
+
+              if (!actuallyHeic) {
+                // File might have .heic extension but is actually JPEG - try uploading as is
+                console.log(
+                  "File might not be actual HEIC, uploading as original format"
+                );
+                fileToUpload = file;
+              } else {
+                // Inform user about the specific issue and suggest alternatives
+                alert(
+                  `Не удалось конвертировать HEIC файл: ${file.name}.\n\n` +
+                    `Причина: Данный формат HEIC не поддерживается браузером.\n\n` +
+                    `Решения:\n` +
+                    `• Конвертируйте файл в JPEG на устройстве перед загрузкой\n` +
+                    `• На iPhone: откройте Настройки > Камера > Форматы > выберите "Наиболее совместимые"\n` +
+                    `• Попробуйте другой HEIC файл`
+                );
+                continue;
+              }
+            } else {
+              // Other conversion errors
+              alert(
+                `Не удалось конвертировать HEIC файл: ${file.name}. Попробуйте конвертировать файл в JPEG перед загрузкой.`
+              );
+              continue;
+            }
+          }
+        }
+
         const formData = new FormData();
-        formData.append("file", file);
+        formData.append("file", fileToUpload);
 
         const token = localStorage.getItem("token");
         const response = await fetch("/api/upload", {
@@ -160,10 +283,13 @@ export default function CreateInvitation() {
 
         if (response.ok) {
           const result = await response.json();
-          uploadedUrls.push(result.url);
+          const photoUrl = `${result.url}`;
+          uploadedUrls.push(photoUrl);
         } else {
-          console.error("Upload failed for file:", file.name);
-          alert(`Ошибка загрузки файла: ${file.name}`);
+          console.error("Upload failed for file:", fileToUpload.name);
+          const errorText = await response.text();
+          console.error("Error details:", errorText);
+          alert(`Ошибка загрузки файла: ${fileToUpload.name}\n${errorText}`);
         }
       }
 
@@ -178,7 +304,6 @@ export default function CreateInvitation() {
       alert("Ошибка при загрузке фото");
     } finally {
       setUploadingPhotos(false);
-      // Clear the input to allow uploading the same files again and fix preview issues
       if (e.target) {
         e.target.value = "";
       }
@@ -205,10 +330,38 @@ export default function CreateInvitation() {
   };
 
   const addScheduleItem = () => {
-    setEventData((prev) => ({
-      ...prev,
-      schedule: [...prev.schedule, { time: "", event: "" }],
-    }));
+    setEventData((prev) => {
+      // Calculate the next suggested time
+      let nextTime = "";
+
+      if (prev.schedule.length === 0) {
+        // First schedule item: use event time or default to event time
+        nextTime = prev.time || "19:00";
+      } else {
+        // Calculate next time by adding 1 hour to the last schedule item
+        const lastScheduleTime = prev.schedule[prev.schedule.length - 1].time;
+        if (lastScheduleTime) {
+          const [hours, minutes] = lastScheduleTime.split(":").map(Number);
+          const nextHour = (hours + 1) % 24; // Wrap around at 24
+          nextTime = `${nextHour.toString().padStart(2, "0")}:${minutes
+            .toString()
+            .padStart(2, "0")}`;
+        } else {
+          // Fallback if last item has no time
+          const baseTime = prev.time || "19:00";
+          const [hours, minutes] = baseTime.split(":").map(Number);
+          const nextHour = (hours + prev.schedule.length + 1) % 24;
+          nextTime = `${nextHour.toString().padStart(2, "0")}:${minutes
+            .toString()
+            .padStart(2, "0")}`;
+        }
+      }
+
+      return {
+        ...prev,
+        schedule: [...prev.schedule, { time: nextTime, event: "" }],
+      };
+    });
   };
 
   const updateScheduleItem = (
@@ -341,7 +494,7 @@ export default function CreateInvitation() {
   };
 
   const handleCreateAndSetupGifts = async () => {
-    setLoading(true);
+    setCreatingWithGifts(true);
     setProgress(0);
     setProgressStep("Подготовка данных...");
 
@@ -443,7 +596,7 @@ export default function CreateInvitation() {
     } catch (error) {
       console.error("Error:", error);
     } finally {
-      setLoading(false);
+      setCreatingWithGifts(false);
       setProgress(0);
       setProgressStep("");
     }
@@ -825,6 +978,7 @@ export default function CreateInvitation() {
                     <input
                       type="date"
                       value={eventData.date}
+                      min={new Date().toISOString().split("T")[0]} // Prevent past dates
                       onChange={(e) =>
                         setEventData((prev) => ({
                           ...prev,
@@ -1018,7 +1172,8 @@ export default function CreateInvitation() {
                         {uploadingPhotos ? "Загрузка..." : "Выбрать фотографии"}
                       </label>
                       <p className="text-gray-500 text-xs sm:text-sm mt-2">
-                        Поддерживаются JPG, PNG (макс. 5MB каждая)
+                        Поддерживаются JPG, PNG, WebP, AVIF, HEIC (макс. 5MB
+                        каждая)
                       </p>
                       {uploadingPhotos && (
                         <p className="text-blue-600 text-sm mt-2">
@@ -1032,7 +1187,7 @@ export default function CreateInvitation() {
                         {eventData.photos.map((photoUrl, index) => (
                           <div key={index} className="relative group">
                             <Image
-                              src={photoUrl}
+                              src={getFileUrl(photoUrl, "photos")}
                               alt={`Photo ${index + 1}`}
                               width={100}
                               height={80}
@@ -1167,28 +1322,34 @@ export default function CreateInvitation() {
                       {eventData.type !== "поминки" && (
                         <button
                           onClick={handleCreateAndSetupGifts}
-                          disabled={loading || !isStepValid(step)}
+                          disabled={
+                            creatingWithGifts || loading || !isStepValid(step)
+                          }
                           className={`px-6 py-3 rounded-lg font-medium text-sm sm:text-base ${
-                            loading
+                            creatingWithGifts || loading
                               ? "bg-gray-400 text-white cursor-not-allowed"
                               : "bg-purple-600 text-white hover:bg-purple-700"
                           }`}
                         >
-                          {loading
-                            ? "Создание..."
+                          {creatingWithGifts
+                            ? "Создание с подарками..."
                             : "🎁 Создать + добавить подарки"}
                         </button>
                       )}
                       <button
                         onClick={handleSubmit}
-                        disabled={loading || !isStepValid(step)}
+                        disabled={
+                          loading || creatingWithGifts || !isStepValid(step)
+                        }
                         className={`px-6 py-3 rounded-lg font-medium text-sm sm:text-base ${
-                          loading
+                          loading || creatingWithGifts
                             ? "bg-gray-400 text-white cursor-not-allowed"
                             : "bg-green-600 text-white hover:bg-green-700"
                         }`}
                       >
-                        {loading ? "Создание..." : "✅ Создать без подарков"}
+                        {loading
+                          ? "Создание без подарков..."
+                          : "✅ Создать без подарков"}
                       </button>
                     </div>
                   </div>

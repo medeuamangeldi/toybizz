@@ -51,7 +51,7 @@ export default function DemoPage() {
     rsvpText: "Подтвердить участие до 1 декабря",
     eventId: "demo-wedding-123",
     melody:
-      "https://file-examples.com/storage/fe68c3bb7bb4c043ccf22d8/2017/11/file_example_MP3_700KB.mp3", // Demo melody URL - working MP3
+      "https://prod-1.storage.jamendo.com/?trackid=346494&format=mp31&from=app-97dab294", // Direct MP3 from Jamendo
     contactInfo: {
       organizer: "Анна Петрова",
       phone: "+7 (777) 123-45-67",

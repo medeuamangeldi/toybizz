@@ -10,6 +10,7 @@ import {
   InvitationData,
 } from "@/components/InvitationTemplate";
 import { themeNames } from "@/components/themes";
+import { getFileUrl } from "@/lib/url-utils";
 
 const themeDisplayNames = {
   elegant: "Элегантная",
@@ -71,6 +72,18 @@ export default function EditInvitationPage() {
       try {
         if (invitation.htmlContent && invitation.htmlContent.startsWith("{")) {
           contentData = JSON.parse(invitation.htmlContent);
+          // Map photo IDs to URLs
+          if (invitation.photoUrls && invitation.photoUrls.length > 0) {
+            contentData.photos = invitation.photoUrls.map(
+              (photoId: string) => `${photoId}`
+            );
+          }
+          // Handle melody URL
+          if (invitation.melodyUrl) {
+            contentData.melody = invitation.melodyUrl.startsWith("/")
+              ? invitation.melodyUrl
+              : `/api/files/melodies/${invitation.melodyUrl}`;
+          }
         } else {
           // Create from existing fields for backward compatibility
           contentData = {
@@ -87,7 +100,14 @@ export default function EditInvitationPage() {
                 activity: "Основное мероприятие",
               },
             ],
-            photos: invitation.photoUrls || [],
+            photos:
+              invitation.photoUrls?.map((photoId: string) => `${photoId}`) ||
+              [],
+            melody: invitation.melodyUrl
+              ? invitation.melodyUrl.startsWith("/")
+                ? invitation.melodyUrl
+                : `/api/files/melodies/${invitation.melodyUrl}`
+              : undefined,
             rsvpText: "Подтвердить участие",
             eventId: eventId,
           };
@@ -221,6 +241,24 @@ export default function EditInvitationPage() {
     const files = event.target.files;
     if (!files || !invitationData) return;
 
+    const filesArray = Array.from(files);
+
+    // Check for HEIC files and inform user about conversion
+    const heicFiles = filesArray.filter(
+      (file) =>
+        file.type.toLowerCase().includes("heic") ||
+        file.type.toLowerCase().includes("heif") ||
+        file.name.toLowerCase().endsWith(".heic") ||
+        file.name.toLowerCase().endsWith(".heif")
+    );
+
+    if (heicFiles.length > 0) {
+      alert(
+        `Обнаружены HEIC файлы (${heicFiles.map((f) => f.name).join(", ")}). ` +
+          `Они будут автоматически конвертированы в JPEG для лучшей совместимости.`
+      );
+    }
+
     setIsUploading(true);
     setError("");
 
@@ -228,7 +266,7 @@ export default function EditInvitationPage() {
       const token = localStorage.getItem("token");
       const uploadedUrls: string[] = [];
 
-      for (const file of Array.from(files)) {
+      for (const file of filesArray) {
         const formData = new FormData();
         formData.append("file", file);
 
@@ -470,7 +508,7 @@ export default function EditInvitationPage() {
                   {invitationData.photos.map((url, index) => (
                     <div key={index} className="relative group">
                       <Image
-                        src={url}
+                        src={getFileUrl(url, "photos")}
                         alt={`Uploaded photo ${index + 1}`}
                         width={150}
                         height={150}

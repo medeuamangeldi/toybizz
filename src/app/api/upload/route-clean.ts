@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { GridFSBucket } from "mongodb";
 import { connectToDatabase } from "@/lib/database";
 import { Readable } from "stream";
+import { heicTo } from "heic-to/csp";
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,17 +20,21 @@ export async function POST(request: NextRequest) {
 
     const allowedTypes = [
       "image/jpeg",
-      "image/png", 
+      "image/png",
       "image/webp",
       "image/gif",
+      "image/heic",
+      "image/heif",
       "image/avif",
     ];
     if (!allowedTypes.includes(file.type.toLowerCase())) {
       return new NextResponse(
-        `Invalid file type: ${file.type}. Only images are allowed (JPEG, PNG, WebP, GIF, AVIF).`,
+        `Invalid file type: ${file.type}. Only images are allowed (JPEG, PNG, WebP, GIF, HEIC, AVIF).`,
         { status: 400 }
       );
-    }    const maxSize = 5 * 1024 * 1024;
+    }
+
+    const maxSize = 5 * 1024 * 1024;
     if (file.size > maxSize) {
       return new NextResponse("File too large. Maximum size is 5MB.", {
         status: 400,
@@ -59,9 +64,48 @@ export async function POST(request: NextRequest) {
 
     const bucket = new GridFSBucket(db, { bucketName: "photos" });
     const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    const finalContentType = file.type;
-    const fileExtension = file.name.split(".").pop()?.toLowerCase() || "jpg";
+    let buffer = Buffer.from(arrayBuffer);
+    let finalContentType = file.type;
+    let fileExtension = file.name.split(".").pop()?.toLowerCase() || "jpg";
+
+    const isHeic =
+      file.type.toLowerCase().includes("heic") ||
+      file.type.toLowerCase().includes("heif") ||
+      fileExtension === "heic" ||
+      fileExtension === "heif";
+
+    if (isHeic) {
+      try {
+        const fileName = file.name.toLowerCase();
+        if (fileName.endsWith(".heic") && file.type === "image/jpeg") {
+          // Keep as is for fake HEIC files
+        } else {
+          const blob = new Blob([buffer], { type: file.type });
+          const convertedBlob = await heicTo({
+            blob: blob,
+            type: "image/jpeg",
+            quality: 0.9,
+          });
+
+          buffer = Buffer.from(await convertedBlob.arrayBuffer());
+          finalContentType = "image/jpeg";
+          fileExtension = "jpg";
+        }
+      } catch (conversionError: unknown) {
+        const errorMessage =
+          conversionError instanceof Error
+            ? conversionError.message
+            : String(conversionError);
+        if (errorMessage.includes("HEIF image not found")) {
+          // Keep original format
+        } else {
+          return new NextResponse(
+            `Failed to convert HEIC file: ${errorMessage}`,
+            { status: 400 }
+          );
+        }
+      }
+    }
 
     const stream = Readable.from(buffer);
     const timestamp = Date.now();
@@ -74,6 +118,7 @@ export async function POST(request: NextRequest) {
         originalName: file.name,
         uploadedAt: new Date(),
         size: buffer.length,
+        converted: isHeic,
       },
     });
 

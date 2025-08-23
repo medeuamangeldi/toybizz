@@ -9,6 +9,7 @@ interface EventData {
   customStyle?: string;
   photoUrls?: string[];
   melodyUrl?: string | null;
+  schedule?: { time: string; event: string }[];
 }
 
 // Generate invitation JSON content using OpenAI
@@ -32,7 +33,12 @@ EVENT DETAILS:
 - Date: ${eventData.date}
 - Time: ${eventData.time}
 - Location: ${eventData.location}
-- Photos: ${eventData.photoUrls?.length || 0} uploaded
+- Schedule: ${
+    eventData.schedule ? JSON.stringify(eventData.schedule) : "Not provided"
+  }
+- Photos: ${
+    eventData.photoUrls?.length || 0
+  } uploaded (not included in generation)
 - Music: ${eventData.melodyUrl ? "Yes" : "No"}
 
 🚨 LANGUAGE REQUIREMENT 🚨
@@ -78,7 +84,7 @@ Return ONLY a JSON object with this exact structure:
     eventData.language
   }]"}
   ],
-  "photos": ${eventData.photoUrls ? JSON.stringify(eventData.photoUrls) : "[]"},
+  "photos": [],
   "rsvpText": "[Elegant RSVP button text in ${eventData.language}]",
   "eventId": "${eventId}",
   "eventType": "${eventData.type}"
@@ -89,8 +95,8 @@ ENHANCED GUIDELINES:
 - Transform generic locations into specific, realistic venues with full addresses
 - Create beautiful, heartfelt descriptions that capture the event's essence
 - Use appropriate cultural references and traditions for the language/region
-- Keep the original schedule time EXACTLY as provided - do not change times!
-- Only provide ONE schedule item with the exact time given
+- Keep ALL schedule items with EXACT times as provided - do not change or omit any!
+- If multiple schedule items are provided, include ALL of them in the response
 - Use appropriate cultural references and traditions for the language/region
 - For weddings: Include romantic, ceremonial language
 - For birthdays: Include celebratory, joyful language
@@ -279,12 +285,18 @@ function generateFallbackJSON(eventData: EventData, eventId: string): string {
     date: eventData.date,
     location: enhanceLocation(eventData.location, eventData.language),
     description: content.description,
-    schedule: [
-      {
-        time: eventData.time,
-        event: content.mainEvent,
-      },
-    ],
+    schedule:
+      eventData.schedule && eventData.schedule.length > 0
+        ? eventData.schedule.map((item) => ({
+            time: item.time,
+            event: item.event,
+          }))
+        : [
+            {
+              time: eventData.time,
+              event: content.mainEvent,
+            },
+          ],
     photos: eventData.photoUrls || [],
     rsvpText: content.rsvpText,
     eventId: eventId,

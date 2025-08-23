@@ -193,8 +193,8 @@ const GiftRegistry: React.FC<GiftRegistryProps> = ({
     );
   }
 
-  // Don't render anything if there are no gifts and user is not owner and not in edit mode
-  if (gifts.length === 0 && !isOwner && !editMode) {
+  // Don't render anything if there are no gifts (even for owners in non-edit mode)
+  if (gifts.length === 0 && !editMode) {
     return null;
   }
 
@@ -359,9 +359,7 @@ const GiftRegistry: React.FC<GiftRegistryProps> = ({
       )}
 
       {/* Gifts List */}
-      {gifts.length ===
-      0 ? // Don't show empty state for anyone - just render nothing
-      null : (
+      {gifts.length === 0 ? null : ( // Don't show empty state for anyone - just render nothing
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {gifts.map((gift) => {
             const priorityInfo = priorities.find(

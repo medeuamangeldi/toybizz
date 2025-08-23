@@ -148,12 +148,12 @@ export async function POST(request: NextRequest) {
     // Process photos - they can be either uploaded URLs or files
     let photoUrls: string[] = [];
 
-    // First check if photos are already uploaded URLs (JSON string)
+    // First check if photos are already uploaded URLs (JSON string with file IDs)
     const photosJsonString = formData.get("photos") as string | null;
     if (photosJsonString) {
       try {
         photoUrls = JSON.parse(photosJsonString);
-        console.log(`📸 Using ${photoUrls.length} pre-uploaded photos`);
+        console.log(`📸 Using ${photoUrls.length} pre-uploaded photo IDs`);
       } catch (error) {
         console.error("Error parsing photos JSON:", error);
       }
@@ -168,7 +168,7 @@ export async function POST(request: NextRequest) {
           if (photo.size > 0) {
             try {
               const buffer = await fileToBuffer(photo);
-              const { url } = await uploadToGridFS(
+              const { fileId } = await uploadToGridFS(
                 bucket,
                 `photo_${index + 1}_${photo.name}`,
                 buffer,
@@ -176,8 +176,8 @@ export async function POST(request: NextRequest) {
                 eventId,
                 "photo"
               );
-              photoUrls.push(url);
-              console.log(`✅ Photo ${index + 1} uploaded: ${url}`);
+              photoUrls.push(fileId.toString()); // Store only the file ID
+              console.log(`✅ Photo ${index + 1} uploaded with ID: ${fileId}`);
             } catch (error) {
               console.error(`❌ Error uploading photo ${index + 1}:`, error);
             }

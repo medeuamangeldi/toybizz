@@ -14,9 +14,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await connectToDatabase();
-
-    // Check if gift exists and is not already reserved
     const { db } = await connectToDatabase();
     const giftsCollection = db.collection("gifts");
 
@@ -74,12 +71,10 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    await connectToDatabase();
-
-    // Unreserve the gift
     const { db } = await connectToDatabase();
     const giftsCollection = db.collection("gifts");
 
+    // Unreserve the gift
     const updatedGift = await giftsCollection.findOneAndUpdate(
       { _id: new ObjectId(giftId) },
       {
