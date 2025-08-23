@@ -1,4 +1,3 @@
-import Image from "next/image";
 import { getPhotoUrl } from "@/lib/url-utils";
 
 interface PhotoUploadProps {
@@ -44,11 +43,9 @@ export default function PhotoUpload({
           {photos.map((photo, index) => (
             <div key={index} className="relative group">
               <div className="aspect-square rounded-lg overflow-hidden bg-gray-200">
-                <Image
+                <img
                   src={getPhotoUrl(photo)}
                   alt={`Photo ${index + 1}`}
-                  width={200}
-                  height={200}
                   className="w-full h-full object-cover"
                 />
               </div>

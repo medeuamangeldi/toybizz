@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   InvitationTemplate,
@@ -94,11 +93,6 @@ export default function EditInvitationPage() {
         eventId: eventId,
       };
 
-      console.log("📸 Loading invitation photos:", {
-        photoUrls: invitation.photoUrls,
-        photosInContentData: contentData.photos
-      });
-
       setInvitationData(contentData);
       setSelectedTheme(invitation.theme || invitation.style || "elegant");
     } catch (err) {
@@ -134,12 +128,6 @@ export default function EditInvitationPage() {
     }
 
     try {
-      console.log("💾 Saving invitation with data:", {
-        contentData: invitationData,
-        theme: selectedTheme,
-        photos: invitationData.photos
-      });
-
       const response = await fetch(`/api/invitations/${eventId}`, {
         method: "PUT",
         headers: {
@@ -264,12 +252,9 @@ export default function EditInvitationPage() {
       }
 
       if (uploadedUrls.length > 0) {
-        console.log("📸 Adding new photos:", uploadedUrls);
-        const newPhotos = [...(invitationData.photos || []), ...uploadedUrls];
-        console.log("📸 All photos after upload:", newPhotos);
         setInvitationData({
           ...invitationData,
-          photos: newPhotos,
+          photos: [...(invitationData.photos || []), ...uploadedUrls],
         });
       }
     } catch (err) {
@@ -487,11 +472,9 @@ export default function EditInvitationPage() {
                 <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-4">
                   {invitationData.photos.map((url, index) => (
                     <div key={index} className="relative group">
-                      <Image
+                      <img
                         src={getPhotoUrl(url)}
                         alt={`Uploaded photo ${index + 1}`}
-                        width={150}
-                        height={150}
                         className="w-full h-24 sm:h-32 object-cover rounded-lg"
                       />
                       <button

@@ -1,4 +1,3 @@
-import Image from "next/image";
 import { getPhotoUrl } from "@/lib/url-utils";
 
 interface PhotoGalleryProps {
@@ -37,12 +36,10 @@ export default function PhotoGallery({ photos, theme }: PhotoGalleryProps) {
               style={{ animationDelay: `${i * 200}ms` }}
             >
               <div className="aspect-square">
-                <Image
+                <img
                   src={getPhotoUrl(url)}
                   alt={`Фото ${i + 1}`}
-                  fill
-                  className="object-cover group-hover:scale-110 transition-transform duration-700"
-                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                 />
               </div>
               <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>

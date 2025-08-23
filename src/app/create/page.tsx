@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { useAuth } from "@/contexts/AuthContext";
 import GiftRegistry from "@/components/GiftRegistry";
 import { getPhotoUrl } from "@/lib/url-utils";
@@ -1186,12 +1185,9 @@ export default function CreateInvitation() {
                       <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-4">
                         {eventData.photos.map((photoUrl, index) => (
                           <div key={index} className="relative group">
-                            <Image
+                            <img
                               src={getPhotoUrl(photoUrl)}
                               alt={`Photo ${index + 1}`}
-                              width={100}
-                              height={80}
-                              unoptimized
                               className="w-full h-20 sm:h-24 object-cover rounded-lg"
                             />
                             <button
