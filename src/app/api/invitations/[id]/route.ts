@@ -93,7 +93,8 @@ export async function PUT(request: NextRequest, props: PageProps) {
       description: contentData.description || "",
       schedule: contentData.schedule || [],
       rsvpText: contentData.rsvpText || "Подтвердить участие",
-      // Note: photos are managed separately via photoUrls array, not in contentData
+      // Update photoUrls array from contentData.photos if provided
+      ...(contentData.photos && { photoUrls: contentData.photos }),
       updatedAt: new Date().toISOString(),
     };
 

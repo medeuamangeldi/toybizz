@@ -94,6 +94,11 @@ export default function EditInvitationPage() {
         eventId: eventId,
       };
 
+      console.log("📸 Loading invitation photos:", {
+        photoUrls: invitation.photoUrls,
+        photosInContentData: contentData.photos
+      });
+
       setInvitationData(contentData);
       setSelectedTheme(invitation.theme || invitation.style || "elegant");
     } catch (err) {
@@ -129,6 +134,12 @@ export default function EditInvitationPage() {
     }
 
     try {
+      console.log("💾 Saving invitation with data:", {
+        contentData: invitationData,
+        theme: selectedTheme,
+        photos: invitationData.photos
+      });
+
       const response = await fetch(`/api/invitations/${eventId}`, {
         method: "PUT",
         headers: {
@@ -245,6 +256,7 @@ export default function EditInvitationPage() {
 
         if (response.ok) {
           const result = await response.json();
+          // result.url is the file ID, not a full URL
           uploadedUrls.push(result.url);
         } else {
           console.error("Upload failed for file:", file.name);
@@ -252,9 +264,12 @@ export default function EditInvitationPage() {
       }
 
       if (uploadedUrls.length > 0) {
+        console.log("📸 Adding new photos:", uploadedUrls);
+        const newPhotos = [...(invitationData.photos || []), ...uploadedUrls];
+        console.log("📸 All photos after upload:", newPhotos);
         setInvitationData({
           ...invitationData,
-          photos: [...(invitationData.photos || []), ...uploadedUrls],
+          photos: newPhotos,
         });
       }
     } catch (err) {
