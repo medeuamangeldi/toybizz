@@ -3,6 +3,8 @@ import { connectToDatabase } from "@/lib/database";
 import { ObjectId } from "mongodb";
 import jwt from "jsonwebtoken";
 
+const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -161,7 +163,7 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      jwt.verify(token, process.env.JWT_SECRET!);
+      jwt.verify(token, JWT_SECRET);
     } catch {
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
@@ -227,7 +229,7 @@ export async function PUT(request: NextRequest) {
     }
 
     try {
-      jwt.verify(token, process.env.JWT_SECRET!);
+      jwt.verify(token, JWT_SECRET);
     } catch {
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
@@ -280,7 +282,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     try {
-      jwt.verify(token, process.env.JWT_SECRET!);
+      jwt.verify(token, JWT_SECRET);
     } catch {
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
