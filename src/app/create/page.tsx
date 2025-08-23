@@ -26,7 +26,7 @@ interface EventData {
 }
 
 export default function CreateInvitation() {
-  const { user, logout } = useAuth();
+  const { user, logout, refreshUser } = useAuth();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [creatingWithGifts, setCreatingWithGifts] = useState(false);
@@ -384,6 +384,17 @@ export default function CreateInvitation() {
   };
 
   const handleSubmit = async () => {
+    // Check free trial limit for non-premium users
+    if (user && (!user.plan || user.plan === "free")) {
+      const freeTrialCount = user.freeTrialCount || 0;
+      if (freeTrialCount >= 3) {
+        alert(
+          "Вы достигли лимита бесплатных приглашений (3). Пожалуйста, обновитесь до премиум версии."
+        );
+        return;
+      }
+    }
+
     setLoading(true);
     setProgress(0);
     setProgressStep("Подготовка данных...");
@@ -448,6 +459,9 @@ export default function CreateInvitation() {
             setCreatedEventId(result.eventId);
             setProgress(100);
             setProgressStep("Готово!");
+
+            // Refresh user data to update free trial count
+            refreshUser();
 
             setTimeout(() => {
               setShowSuccessModal(true);
@@ -557,6 +571,9 @@ export default function CreateInvitation() {
             setCreatedEventId(result.eventId);
             setProgress(100);
             setProgressStep("Переход к настройке подарков...");
+
+            // Refresh user data to update free trial count
+            refreshUser();
 
             setTimeout(() => {
               setStep(6); // Go to gift registry step

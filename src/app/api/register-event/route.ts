@@ -34,9 +34,9 @@ export async function POST(request: NextRequest) {
     await eventsCollection.updateOne(
       { eventId: eventId }, // Use custom eventId instead of _id
       {
-        $inc: { 
+        $inc: {
           "analytics.registrations": 1, // Count of registered users
-          "analytics.totalAttendees": parseInt(peopleCount) || 1 // Total people coming
+          "analytics.totalAttendees": parseInt(peopleCount) || 1, // Total people coming
         },
         $set: { updatedAt: new Date() },
       }

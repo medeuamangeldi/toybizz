@@ -76,10 +76,11 @@ export async function GET(
       views: invitation.analytics?.views || 0,
       totalAttendees,
       analytics: {
-        registrations: invitation.analytics?.registrations || registrations.length,
+        registrations:
+          invitation.analytics?.registrations || registrations.length,
         totalAttendees: invitation.analytics?.totalAttendees || totalAttendees,
-        views: invitation.analytics?.views || 0
-      }
+        views: invitation.analytics?.views || 0,
+      },
     });
   } catch (error) {
     console.error("Fetch invitation stats error:", error);

@@ -82,6 +82,25 @@ export async function POST(request: NextRequest) {
       `✅ User authenticated: ${authUser.email} (${authUser.userId})`
     );
 
+    // Connect to database
+    const { db } = await connectToDatabase();
+
+    // Check free trial limit
+    const usersCollection = db.collection("users");
+    const user = await usersCollection.findOne({
+      _id: new ObjectId(authUser.userId),
+    });
+
+    if (user && (!user.plan || user.plan === "free")) {
+      const freeTrialCount = user.freeTrialCount || 0;
+      if (freeTrialCount >= 3) {
+        return NextResponse.json(
+          { error: "Free trial limit reached. Please upgrade to premium." },
+          { status: 403 }
+        );
+      }
+    }
+
     // Parse form data
     const formData = await request.formData();
     console.log(`📋 Form data parsed`);
@@ -134,8 +153,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Connect to database
-    const { db } = await connectToDatabase();
     const bucket = new GridFSBucket(db, { bucketName: "uploads" });
 
     // Generate unique eventId
@@ -258,6 +275,15 @@ export async function POST(request: NextRequest) {
 
     console.log(`💾 Saving invitation to database...`);
     const result = await eventsCollection.insertOne(invitationDoc);
+
+    // Increment free trial count for non-premium users
+    if (!user?.plan || user.plan === "free") {
+      await usersCollection.updateOne(
+        { _id: new ObjectId(authUser.userId) },
+        { $inc: { freeTrialCount: 1 } }
+      );
+      console.log(`📊 Free trial count incremented for user ${authUser.email}`);
+    }
 
     console.log(`✅ Invitation created successfully: ${result.insertedId}`);
 
