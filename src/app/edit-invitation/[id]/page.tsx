@@ -75,13 +75,16 @@ export default function EditInvitationPage() {
           // Create from existing fields for backward compatibility
           contentData = {
             title: invitation.title || invitation.name || "Приглашение",
+            type: invitation.eventType || invitation.type || "событие",
             date: invitation.date || "Дата не указана",
+            time: invitation.time || "00:00",
             location: invitation.location || "Место не указано",
+            theme: invitation.theme || "elegant",
             description: "Присоединяйтесь к нашему празднику!",
             schedule: [
               {
                 time: invitation.time || "00:00",
-                event: "Основное мероприятие",
+                activity: "Основное мероприятие",
               },
             ],
             photos: invitation.photoUrls || [],
@@ -93,8 +96,11 @@ export default function EditInvitationPage() {
         console.error("Error parsing invitation data:", parseError);
         contentData = {
           title: invitation.title || "Приглашение",
+          type: invitation.eventType || invitation.type || "событие",
           date: invitation.date || "Дата не указана",
+          time: invitation.time || "00:00",
           location: invitation.location || "Место не указано",
+          theme: invitation.theme || "elegant",
           description: "Присоединяйтесь к нашему празднику!",
           schedule: [],
           photos: [],
@@ -175,17 +181,17 @@ export default function EditInvitationPage() {
 
     const newScheduleItem = {
       time: "19:00",
-      event: "Новое мероприятие",
+      activity: "Новое мероприятие",
     };
 
     setInvitationData({
       ...invitationData,
-      schedule: [...invitationData.schedule, newScheduleItem],
+      schedule: [...(invitationData.schedule || []), newScheduleItem],
     });
   };
 
   const removeScheduleItem = (index: number) => {
-    if (!invitationData) return;
+    if (!invitationData || !invitationData.schedule) return;
 
     const newSchedule = invitationData.schedule.filter((_, i) => i !== index);
     setInvitationData({
@@ -196,10 +202,10 @@ export default function EditInvitationPage() {
 
   const updateScheduleItem = (
     index: number,
-    field: "time" | "event",
+    field: "time" | "activity",
     value: string
   ) => {
-    if (!invitationData) return;
+    if (!invitationData || !invitationData.schedule) return;
 
     const newSchedule = [...invitationData.schedule];
     newSchedule[index] = { ...newSchedule[index], [field]: value };
@@ -496,7 +502,7 @@ export default function EditInvitationPage() {
                 </button>
               </div>
               <div className="space-y-2">
-                {invitationData.schedule.map((item, index) => (
+                {(invitationData.schedule || []).map((item, index) => (
                   <div key={index} className="flex space-x-2">
                     <input
                       type="text"
@@ -510,11 +516,11 @@ export default function EditInvitationPage() {
                     <input
                       type="text"
                       placeholder="Мероприятие"
-                      value={item.event}
+                      value={item.activity || item.event || ""}
                       onChange={(e) =>
-                        updateScheduleItem(index, "event", e.target.value)
+                        updateScheduleItem(index, "activity", e.target.value)
                       }
-                      className="flex-1 p-2 rounded bg-white/20 text-white border border-white/30 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="flex-1 p-2 rounded bg-white/20 text-white border border-white/30 focus:outline-none focus:ring-2 focus:ring-2 focus:ring-blue-500"
                     />
                     <button
                       onClick={() => removeScheduleItem(index)}

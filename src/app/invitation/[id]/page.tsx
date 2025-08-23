@@ -46,14 +46,18 @@ export default async function InvitationViewPage({
         // Fallback: create data from existing fields for backward compatibility
         invitationData = {
           title: invitation.title || invitation.name || "Приглашение",
+          type: invitation.eventType || invitation.type || "событие",
           date: invitation.date || "Дата не указана",
+          time: invitation.time || "00:00",
           location: invitation.location || "Место не указано",
+          theme: invitation.theme || "elegant",
           description:
             invitation.description || "Присоединяйтесь к нашему празднику!",
           schedule: invitation.schedule || [],
           photos: invitation.photoUrls || [],
           rsvpText: "Подтвердить участие",
           eventId: invitation.eventId || id,
+          eventType: invitation.eventType || invitation.type || "",
         };
       }
     } catch (error) {
@@ -61,13 +65,17 @@ export default async function InvitationViewPage({
       // Fallback data
       invitationData = {
         title: invitation.title || "Приглашение",
+        type: invitation.eventType || invitation.type || "событие",
         date: invitation.date || "Дата не указана",
+        time: invitation.time || "00:00",
         location: invitation.location || "Место не указано",
+        theme: invitation.theme || "elegant",
         description: "Присоединяйтесь к нашему празднику!",
         schedule: [],
         photos: [],
         rsvpText: "Подтвердить участие",
         eventId: invitation.eventId || id,
+        eventType: invitation.eventType || invitation.type || "",
       };
     }
 

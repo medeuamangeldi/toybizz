@@ -62,6 +62,7 @@ export default function CreateInvitation() {
     { value: "юбилей", label: "Юбилей 🎉", emoji: "🎉" },
     { value: "корпоратив", label: "Корпоратив 🏢", emoji: "🏢" },
     { value: "вечеринка", label: "Вечеринка 🎊", emoji: "🎊" },
+    { value: "поминки", label: "Поминки 🕊️", emoji: "🕊️" },
     { value: "другое", label: "Другое 🎭", emoji: "🎭" },
   ];
 
@@ -135,8 +136,8 @@ export default function CreateInvitation() {
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    if (files.length + eventData.photos.length > 5) {
-      alert("Максимум 5 фотографий");
+    if (files.length + eventData.photos.length > 10) {
+      alert("Максимум 10 фотографий");
       return;
     }
 
@@ -177,6 +178,10 @@ export default function CreateInvitation() {
       alert("Ошибка при загрузке фото");
     } finally {
       setUploadingPhotos(false);
+      // Clear the input to allow uploading the same files again and fix preview issues
+      if (e.target) {
+        e.target.value = "";
+      }
     }
   };
 
@@ -643,7 +648,7 @@ export default function CreateInvitation() {
             Создать приглашение
           </h1>
           <div className="flex justify-center space-x-2 mb-4 sm:mb-6">
-            {[1, 2, 3, 4, 5].map((i) => (
+            {[1, 2, 3, 4, 5, 6].map((i) => (
               <div
                 key={i}
                 className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-sm font-medium ${
@@ -989,7 +994,7 @@ export default function CreateInvitation() {
                   {/* Photos Upload */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Фотографии (до 5 шт., необязательно):
+                      Фотографии (до 10 шт., необязательно):
                     </label>
                     <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 sm:p-6 text-center">
                       <input
@@ -1031,6 +1036,7 @@ export default function CreateInvitation() {
                               alt={`Photo ${index + 1}`}
                               width={100}
                               height={80}
+                              unoptimized
                               className="w-full h-20 sm:h-24 object-cover rounded-lg"
                             />
                             <button
@@ -1093,16 +1099,23 @@ export default function CreateInvitation() {
                 </div>
               )}
 
-              {/* Step 6: Gift Registry */}
+              {/* Step 6: Gift Registry (Optional) */}
               {step === 6 && createdEventId && (
                 <div className="space-y-4 sm:space-y-6">
                   <div className="text-center mb-6">
                     <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">
-                      Реестр подарков
+                      🎁 Реестр подарков
                     </h2>
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                      <p className="text-blue-800 text-sm">
+                        ✨ <strong>Этот шаг необязательный!</strong> Вы можете
+                        добавить подарки, которые хотели бы получить от гостей,
+                        или пропустить этот шаг.
+                      </p>
+                    </div>
                     <p className="text-gray-600 text-sm">
-                      Добавьте подарки, которые хотели бы получить от гостей
-                      (необязательно)
+                      Реестр подарков поможет гостям выбрать то, что вам
+                      действительно нужно
                     </p>
                   </div>
 
@@ -1143,48 +1156,41 @@ export default function CreateInvitation() {
                   <div
                     className={`${
                       step > 1 ? "sm:ml-auto" : "ml-auto"
-                    } flex gap-3`}
+                    } flex flex-col gap-3`}
                   >
-                    <button
-                      onClick={handleCreateAndSetupGifts}
-                      disabled={loading || !isStepValid(step)}
-                      className={`px-6 py-3 rounded-lg font-medium text-sm sm:text-base ${
-                        loading
-                          ? "bg-gray-400 text-white cursor-not-allowed"
-                          : "bg-purple-600 text-white hover:bg-purple-700"
-                      }`}
-                    >
-                      {loading ? "Создание..." : "🎁 Добавить подарки"}
-                    </button>
-                    <button
-                      onClick={handleSubmit}
-                      disabled={loading || !isStepValid(step)}
-                      className={`px-6 py-3 rounded-lg font-medium text-sm sm:text-base ${
-                        loading
-                          ? "bg-gray-400 text-white cursor-not-allowed"
-                          : "bg-green-600 text-white hover:bg-green-700"
-                      }`}
-                    >
-                      {loading ? "Создание..." : "🎉 Создать приглашение"}
-                    </button>
-                    {loading && (
-                      <div className="absolute top-full left-0 right-0 mt-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs sm:text-sm text-gray-600">
-                            {progressStep}
-                          </span>
-                          <span className="text-xs sm:text-sm text-gray-600">
-                            {progress}%
-                          </span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div
-                            className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                            style={{ width: `${progress}%` }}
-                          ></div>
-                        </div>
-                      </div>
-                    )}
+                    <div className="text-center mb-2">
+                      <p className="text-sm text-gray-600">
+                        Выберите один из вариантов завершения:
+                      </p>
+                    </div>
+                    <div className="flex gap-3">
+                      {eventData.type !== "поминки" && (
+                        <button
+                          onClick={handleCreateAndSetupGifts}
+                          disabled={loading || !isStepValid(step)}
+                          className={`px-6 py-3 rounded-lg font-medium text-sm sm:text-base ${
+                            loading
+                              ? "bg-gray-400 text-white cursor-not-allowed"
+                              : "bg-purple-600 text-white hover:bg-purple-700"
+                          }`}
+                        >
+                          {loading
+                            ? "Создание..."
+                            : "🎁 Создать + добавить подарки"}
+                        </button>
+                      )}
+                      <button
+                        onClick={handleSubmit}
+                        disabled={loading || !isStepValid(step)}
+                        className={`px-6 py-3 rounded-lg font-medium text-sm sm:text-base ${
+                          loading
+                            ? "bg-gray-400 text-white cursor-not-allowed"
+                            : "bg-green-600 text-white hover:bg-green-700"
+                        }`}
+                      >
+                        {loading ? "Создание..." : "✅ Создать без подарков"}
+                      </button>
+                    </div>
                   </div>
                 ) : step === 6 ? (
                   <div className={`${step > 1 ? "sm:ml-auto" : "ml-auto"}`}>
@@ -1197,6 +1203,26 @@ export default function CreateInvitation() {
                   </div>
                 ) : null}
               </div>
+
+              {/* Progress Bar - moved outside navigation to fix container issue */}
+              {loading && (
+                <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs sm:text-sm text-gray-600">
+                      {progressStep}
+                    </span>
+                    <span className="text-xs sm:text-sm text-gray-600">
+                      {progress}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${progress}%` }}
+                    ></div>
+                  </div>
+                </div>
+              )}
             </div>
           </React.Fragment>
         )}

@@ -21,7 +21,7 @@ export async function generateInvitation(
     throw new Error("OpenAI API key not configured");
   }
 
-  const prompt = `You are a world-class content creator. Create invitation CONTENT in JSON format (NOT HTML).
+  const prompt = `You are a world-class content creator and event planner. Create invitation CONTENT in JSON format (NOT HTML).
 
 EVENT DETAILS:
 - Type: ${eventData.type}
@@ -44,24 +44,65 @@ ${
     : `ALL TEXT MUST BE IN ENGLISH LANGUAGE ONLY!`
 }
 
+📍 LOCATION ENHANCEMENT 📍
+If the provided location appears generic or incomplete (like just "Almaty" or "restaurant"), enhance it with a realistic, specific venue:
+- For restaurants: Add a real restaurant name and address
+- For cities: Add a real venue (hotel, restaurant, park, etc.) with full address
+- For Kazakhstan: Use real addresses in Almaty, Astana, Shymkent, etc.
+- For Russia: Use real addresses in Moscow, St. Petersburg, etc.
+- Make it sound authentic and professional
+
+✨ CONTENT ENHANCEMENT ✨
+- Fix any grammar or spelling errors in the original event name/details
+- Create poetic, warm, and elegant descriptions
+- Use ceremonial language appropriate for the event type
+- Ensure all text flows naturally and sounds professional
+- Add cultural context appropriate for the language/region
+
+Return ONLY a JSON object with this exact structure:
+
 Return ONLY a JSON object with this exact structure:
 {
-  "title": "[Event title in ${eventData.language}]",
-  "date": "${eventData.date}",
-  "location": "${eventData.location}",
-  "description": "[Warm invitation message in ${eventData.language}]",
-  "schedule": [
-    {"time": "${eventData.time}", "event": "[Main event name in ${
+  "title": "[Enhanced, grammatically correct event title in ${
     eventData.language
-  }]"},
-    {"time": "[time]", "event": "[Optional second event in ${
-      eventData.language
-    }]"}
+  }]",
+  "date": "${eventData.date}",
+  "location": "[Enhanced specific venue with full address in ${
+    eventData.language
+  }]",
+  "description": "[Warm, poetic invitation message in ${
+    eventData.language
+  } (50-120 words)]",
+  "schedule": [
+    {"time": "${eventData.time}", "event": "[Main ceremony/event name in ${
+    eventData.language
+  }]"}
   ],
   "photos": ${eventData.photoUrls ? JSON.stringify(eventData.photoUrls) : "[]"},
-  "rsvpText": "[RSVP button text in ${eventData.language}]",
-  "eventId": "${eventId}"
+  "rsvpText": "[Elegant RSVP button text in ${eventData.language}]",
+  "eventId": "${eventId}",
+  "eventType": "${eventData.type}"
 }
+
+ENHANCED GUIDELINES:
+- Improve and perfect the original event name if needed (fix spelling, make it more elegant)
+- Transform generic locations into specific, realistic venues with full addresses
+- Create beautiful, heartfelt descriptions that capture the event's essence
+- Use appropriate cultural references and traditions for the language/region
+- Keep the original schedule time EXACTLY as provided - do not change times!
+- Only provide ONE schedule item with the exact time given
+- Use appropriate cultural references and traditions for the language/region
+- For weddings: Include romantic, ceremonial language
+- For birthdays: Include celebratory, joyful language
+- For corporate events: Use professional yet warm language
+- Add local cultural elements when appropriate
+
+Guidelines:
+- Create appropriate content for ${eventData.type} in ${eventData.language}
+- Include warm, ceremonial language appropriate for the event type
+- Keep description between 30-100 words
+- Include realistic schedule times if multiple events
+- Use formal, inviting tone
 
 Guidelines:
 - Create appropriate content for ${eventData.type} in ${eventData.language}
@@ -94,7 +135,7 @@ Return ONLY the JSON object, no markdown formatting.`;
           {
             role: "system",
             content:
-              "You are an expert content creator specializing in beautiful, ceremonial invitations. Always return valid JSON with appropriate event content.",
+              "You are an expert content creator, event planner, and linguist specializing in beautiful, ceremonial invitations. You excel at improving grammar, enhancing locations with specific venues and addresses, and creating warm, culturally appropriate content. Always return valid JSON with enhanced, professional event content that sounds natural to native speakers.",
           },
           { role: "user", content: prompt },
         ],
@@ -164,20 +205,69 @@ Return ONLY the JSON object, no markdown formatting.`;
 function generateFallbackJSON(eventData: EventData, eventId: string): string {
   const languageContent = {
     русский: {
-      description: "Будем рады видеть вас на нашем особенном мероприятии!",
+      description:
+        "С большой радостью приглашаем вас разделить с нами этот особенный момент! Ваше присутствие сделает наш праздник еще более незабываемым и значимым.",
       rsvpText: "Подтвердить участие",
-      mainEvent: "Основное мероприятие",
+      mainEvent: "Основная церемония",
+      secondEvent: "Банкет и развлечения",
     },
     казахский: {
-      description: "Біздің ерекше шарамызда көруге қуанамыз!",
+      description:
+        "Бізбен бірге осы ерекше сәтті бөлісуге шақырамыз! Сіздің қатысуыңыз біздің мерекемізді одан да есте қаларлық және мәнді етеді.",
       rsvpText: "Қатысуды растау",
-      mainEvent: "Негізгі іс-шара",
+      mainEvent: "Негізгі дәстүр",
+      secondEvent: "Банкет және көңіл көтеру",
     },
     английский: {
-      description: "We would be delighted to see you at our special event!",
+      description:
+        "We joyfully invite you to share this special moment with us! Your presence will make our celebration even more memorable and meaningful.",
       rsvpText: "Confirm Attendance",
-      mainEvent: "Main Event",
+      mainEvent: "Main Ceremony",
+      secondEvent: "Reception and Celebration",
     },
+  };
+
+  // Enhance location if it's too generic
+  const enhanceLocation = (location: string, language: string): string => {
+    const lowerLoc = location.toLowerCase();
+
+    // If location is just a city name, add a venue
+    if (lowerLoc === "алматы" || lowerLoc === "almaty") {
+      return language === "русский"
+        ? "Отель Rixos Almaty, проспект Сейфуллина 506/99, Алматы"
+        : language === "казахский"
+        ? "Rixos Almaty қонақ үйі, Сейфуллин даңғылы 506/99, Алматы"
+        : "Rixos Almaty Hotel, Seifullina Avenue 506/99, Almaty";
+    }
+    if (
+      lowerLoc === "астана" ||
+      lowerLoc === "нур-султан" ||
+      lowerLoc === "astana"
+    ) {
+      return language === "русский"
+        ? "Отель The Ritz-Carlton Astana, проспект Достык 5/1, Астана"
+        : language === "казахский"
+        ? "The Ritz-Carlton Astana қонақ үйі, Достық даңғылы 5/1, Астана"
+        : "The Ritz-Carlton Astana, Dostyk Avenue 5/1, Astana";
+    }
+    if (lowerLoc === "москва" || lowerLoc === "moscow") {
+      return language === "русский"
+        ? "Отель Four Seasons Moscow, улица Охотный Ряд 2, Москва"
+        : "Four Seasons Moscow Hotel, Okhotny Ryad Street 2, Moscow";
+    }
+    if (
+      lowerLoc.includes("ресторан") &&
+      !lowerLoc.includes("улица") &&
+      !lowerLoc.includes("проспект")
+    ) {
+      return language === "русский"
+        ? "Ресторан «Достар», проспект Абая 150/230, Алматы"
+        : language === "казахский"
+        ? "«Достар» мейрамханасы, Абай даңғылы 150/230, Алматы"
+        : "Dostar Restaurant, Abai Avenue 150/230, Almaty";
+    }
+
+    return location; // Return original if already specific
   };
 
   const content =
@@ -187,7 +277,7 @@ function generateFallbackJSON(eventData: EventData, eventId: string): string {
   const fallbackData = {
     title: eventData.name,
     date: eventData.date,
-    location: eventData.location,
+    location: enhanceLocation(eventData.location, eventData.language),
     description: content.description,
     schedule: [
       {
@@ -198,6 +288,7 @@ function generateFallbackJSON(eventData: EventData, eventId: string): string {
     photos: eventData.photoUrls || [],
     rsvpText: content.rsvpText,
     eventId: eventId,
+    eventType: eventData.type,
   };
 
   return JSON.stringify(fallbackData, null, 2);

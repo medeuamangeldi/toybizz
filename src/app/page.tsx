@@ -98,7 +98,7 @@ export default function Home() {
           </h1>
 
           <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-            Создавайте стильные приглашения с 10 уникальными темами, загружайте
+            Создавайте стильные приглашения с уникальными темами, загружайте
             фотографии, управляйте списком подарков и собирайте ответы гостей -
             всё в одном месте.
           </p>
@@ -107,7 +107,7 @@ export default function Home() {
             <div className="bg-white p-6 rounded-xl shadow-lg">
               <div className="text-4xl mb-4">🎨</div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                10 уникальных тем
+                Уникальные темы
               </h3>
               <p className="text-gray-600 text-sm">
                 От элегантных свадебных до ярких детских - каждая тема с
@@ -132,7 +132,7 @@ export default function Home() {
                 Галерея фото
               </h3>
               <p className="text-gray-600 text-sm">
-                Загружайте до 5 фотографий для создания личной атмосферы события
+                Загружайте фотографии для создания личной атмосферы события
               </p>
             </div>
           </div>
@@ -260,11 +260,11 @@ export default function Home() {
             </p>
             <div className="flex justify-center space-x-8">
               <div className="text-center">
-                <div className="text-2xl font-bold text-blue-600">10</div>
+                <div className="text-2xl font-bold text-blue-600">∞</div>
                 <div className="text-xs text-gray-500">Уникальных тем</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-green-600">5</div>
+                <div className="text-2xl font-bold text-green-600">∞</div>
                 <div className="text-xs text-gray-500">Фото в галерее</div>
               </div>
               <div className="text-center">
