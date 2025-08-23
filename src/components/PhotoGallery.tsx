@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { getFileUrl } from "@/lib/url-utils";
+import { getPhotoUrl } from "@/lib/url-utils";
 
 interface PhotoGalleryProps {
   photos: string[];
@@ -38,7 +38,7 @@ export default function PhotoGallery({ photos, theme }: PhotoGalleryProps) {
             >
               <div className="aspect-square">
                 <Image
-                  src={getFileUrl(url, "photos")}
+                  src={getPhotoUrl(url)}
                   alt={`Фото ${i + 1}`}
                   fill
                   className="object-cover group-hover:scale-110 transition-transform duration-700"

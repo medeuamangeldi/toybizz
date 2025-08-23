@@ -10,7 +10,7 @@ import {
   InvitationData,
 } from "@/components/InvitationTemplate";
 import { themeNames } from "@/components/themes";
-import { getFileUrl } from "@/lib/url-utils";
+import { getPhotoUrl } from "@/lib/url-utils";
 
 const themeDisplayNames = {
   elegant: "Элегантная",
@@ -508,7 +508,7 @@ export default function EditInvitationPage() {
                   {invitationData.photos.map((url, index) => (
                     <div key={index} className="relative group">
                       <Image
-                        src={getFileUrl(url, "photos")}
+                        src={getPhotoUrl(url)}
                         alt={`Uploaded photo ${index + 1}`}
                         width={150}
                         height={150}

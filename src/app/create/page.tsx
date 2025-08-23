@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/contexts/AuthContext";
 import GiftRegistry from "@/components/GiftRegistry";
-import { getFileUrl } from "@/lib/url-utils";
+import { getPhotoUrl } from "@/lib/url-utils";
 
 interface ScheduleItem {
   time: string;
@@ -1187,7 +1187,7 @@ export default function CreateInvitation() {
                         {eventData.photos.map((photoUrl, index) => (
                           <div key={index} className="relative group">
                             <Image
-                              src={getFileUrl(photoUrl, "photos")}
+                              src={getPhotoUrl(photoUrl)}
                               alt={`Photo ${index + 1}`}
                               width={100}
                               height={80}

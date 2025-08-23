@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { getFileUrl } from "@/lib/url-utils";
+import { getPhotoUrl } from "@/lib/url-utils";
 
 interface PhotoUploadProps {
   photos: string[];
@@ -45,7 +45,7 @@ export default function PhotoUpload({
             <div key={index} className="relative group">
               <div className="aspect-square rounded-lg overflow-hidden bg-gray-200">
                 <Image
-                  src={getFileUrl(photo, "photos")}
+                  src={getPhotoUrl(photo)}
                   alt={`Photo ${index + 1}`}
                   width={200}
                   height={200}

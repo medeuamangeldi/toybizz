@@ -58,3 +58,27 @@ export function extractFileId(url: string): string | null {
   const match = url.match(/\/api\/files\/(?:photos|melodies)\/([a-f0-9]{24})$/);
   return match ? match[1] : null;
 }
+
+/**
+ * Smart URL handler - converts either file ID or full URL to proper file URL
+ * Handles legacy data that might contain full URLs
+ */
+export function getPhotoUrl(urlOrId: string): string {
+  // If it's already a full URL, extract the file ID first
+  if (urlOrId.includes("/api/files/")) {
+    const fileId = extractFileId(urlOrId);
+    if (fileId) {
+      return getFileUrl(fileId, "photos");
+    }
+    // If we can't extract ID, return as-is (fallback)
+    return urlOrId;
+  }
+
+  // If it's just a file ID (24 character hex string)
+  if (/^[a-f0-9]{24}$/i.test(urlOrId)) {
+    return getFileUrl(urlOrId, "photos");
+  }
+
+  // Fallback: return as-is if we can't determine the format
+  return urlOrId;
+}
