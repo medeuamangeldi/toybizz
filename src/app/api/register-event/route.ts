@@ -3,12 +3,12 @@ import { connectToDatabase } from "@/lib/database";
 
 export async function POST(request: NextRequest) {
   try {
-    const { name, email, phone, attendees, message, eventId } =
+    const { fullName, email, phone, peopleCount, message, eventId } =
       await request.json();
 
-    if (!name || !eventId) {
+    if (!fullName || !eventId) {
       return NextResponse.json(
-        { error: "Name and event ID are required" },
+        { error: "Full name and event ID are required" },
         { status: 400 }
       );
     }
@@ -19,22 +19,25 @@ export async function POST(request: NextRequest) {
     // Create registration record
     const registration = {
       eventId: eventId, // Use custom eventId instead of ObjectId
-      name,
+      name: fullName,
       email: email || null,
       phone: phone || null,
-      attendees: parseInt(attendees) || 1,
+      attendees: parseInt(peopleCount) || 1,
       message: message || null,
       registeredAt: new Date(),
     };
 
     const result = await registrationsCollection.insertOne(registration);
 
-    // Update event analytics (increment registrations count)
+    // Update event analytics with proper counts
     const eventsCollection = db.collection("events");
     await eventsCollection.updateOne(
       { eventId: eventId }, // Use custom eventId instead of _id
       {
-        $inc: { "analytics.registrations": 1 },
+        $inc: { 
+          "analytics.registrations": 1, // Count of registered users
+          "analytics.totalAttendees": parseInt(peopleCount) || 1 // Total people coming
+        },
         $set: { updatedAt: new Date() },
       }
     );
