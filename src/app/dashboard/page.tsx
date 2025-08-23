@@ -128,36 +128,49 @@ export default function DashboardPage() {
       <header className="bg-white/10 backdrop-blur-sm border-b border-white/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row justify-between py-3 sm:py-0 sm:h-16 sm:items-center">
-            <div className="flex items-center mb-2 sm:mb-0">
+            <div className="flex items-center mb-2 sm:mb-0 space-x-6">
               <Link href="/" className="text-xl font-bold text-white">
-                Toybiz Панель
+                Toybiz
               </Link>
+              <nav className="hidden sm:flex space-x-4">
+                <Link
+                  href="/dashboard"
+                  className="text-white/80 hover:text-white transition-colors"
+                >
+                  Мои приглашения
+                </Link>
+                <Link
+                  href="/create"
+                  className="text-white/80 hover:text-white transition-colors"
+                >
+                  Создать
+                </Link>
+              </nav>
             </div>
-            <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+            <div className="flex items-center space-x-3">
               <div className="text-white text-sm">
-                <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0">
-                  <span className="truncate max-w-48 sm:max-w-none">
-                    Добро пожаловать, {user?.email}
+                <div className="flex items-center space-x-2">
+                  <span className="hidden sm:block">👋</span>
+                  <span className="font-medium">
+                    {user?.email?.split("@")[0]}
                   </span>
-                  <div className="flex space-x-2">
-                    {user?.plan && user.plan !== "free" && (
-                      <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
-                        {user.plan}
-                      </span>
-                    )}
-                    {(!user?.plan || user.plan === "free") && (
-                      <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-                        Бесплатно: {3 - (user?.freeTrialCount || 0)} из 3
-                      </span>
-                    )}
-                  </div>
+                  {user?.plan && user.plan !== "free" ? (
+                    <span className="text-xs bg-green-500 text-white px-2 py-1 rounded-full">
+                      {user.plan}
+                    </span>
+                  ) : (
+                    <span className="text-xs bg-blue-500 text-white px-2 py-1 rounded-full">
+                      {3 - (user?.freeTrialCount || 0)}/3
+                    </span>
+                  )}
                 </div>
               </div>
               <button
                 onClick={logout}
-                className="text-white hover:text-red-300 transition-colors text-sm self-start sm:self-auto"
+                className="text-white/70 hover:text-red-300 transition-colors text-sm"
+                title="Выйти"
               >
-                Выйти
+                🚪
               </button>
             </div>
           </div>
@@ -259,20 +272,42 @@ export default function DashboardPage() {
 
                 <br />
 
-                <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+                <div className="flex flex-wrap gap-2">
+                  <Link
+                    href={`/invitation/${invitation.eventId}`}
+                    className="flex-1 min-w-0 sm:flex-none bg-indigo-600 hover:bg-indigo-700 text-white text-center py-3 sm:py-2 px-3 rounded text-sm font-medium transition-colors"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <span className="hidden sm:inline">👁️ Просмотр</span>
+                    <span className="sm:hidden">👁️</span>
+                  </Link>
                   <button
                     onClick={() => copyInvitationLink(invitation.eventId)}
-                    className="flex-1 bg-green-600 hover:bg-green-700 text-white text-center py-3 sm:py-2 px-3 rounded text-sm font-medium transition-colors"
+                    className="flex-1 min-w-0 sm:flex-none bg-green-600 hover:bg-green-700 text-white text-center py-3 sm:py-2 px-3 rounded text-sm font-medium transition-colors"
                   >
-                    {copiedId === invitation.eventId
-                      ? "Скопировано!"
-                      : "Копировать ссылку"}
+                    {copiedId === invitation.eventId ? (
+                      <span>✅</span>
+                    ) : (
+                      <>
+                        <span className="hidden sm:inline">📋 Копировать</span>
+                        <span className="sm:hidden">📋</span>
+                      </>
+                    )}
                   </button>
                   <Link
-                    href={`/invitation/${invitation.eventId}/stats`}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-center py-3 sm:py-2 px-3 rounded text-sm font-medium transition-colors"
+                    href={`/edit-invitation/${invitation.eventId}`}
+                    className="flex-1 min-w-0 sm:flex-none bg-purple-600 hover:bg-purple-700 text-white text-center py-3 sm:py-2 px-3 rounded text-sm font-medium transition-colors"
                   >
-                    Аналитика
+                    <span className="hidden sm:inline">✏️ Редактировать</span>
+                    <span className="sm:hidden">✏️</span>
+                  </Link>
+                  <Link
+                    href={`/invitation/${invitation.eventId}/stats`}
+                    className="flex-1 min-w-0 sm:flex-none bg-blue-600 hover:bg-blue-700 text-white text-center py-3 sm:py-2 px-3 rounded text-sm font-medium transition-colors"
+                  >
+                    <span className="hidden sm:inline">📊 Аналитика</span>
+                    <span className="sm:hidden">📊</span>
                   </Link>
                 </div>
               </div>

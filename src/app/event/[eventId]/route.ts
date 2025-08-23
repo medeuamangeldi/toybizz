@@ -15,12 +15,12 @@ export async function GET(request: NextRequest, props: PageProps) {
     const eventsCollection = db.collection("events");
 
     // Try to find by eventId first, then by _id
-    let invitation = await eventsCollection.findOne({ eventId });
+    let event = await eventsCollection.findOne({ eventId });
 
-    if (!invitation) {
+    if (!event) {
       // If not found by eventId, try by ObjectId
       try {
-        invitation = await eventsCollection.findOne({
+        event = await eventsCollection.findOne({
           _id: new ObjectId(eventId),
         });
       } catch (err) {
@@ -29,19 +29,13 @@ export async function GET(request: NextRequest, props: PageProps) {
       }
     }
 
-    if (!invitation) {
+    if (!event) {
       return NextResponse.json({ error: "Event not found" }, { status: 404 });
     }
 
-    // Return the HTML content directly
-    return new NextResponse(invitation.htmlContent, {
-      status: 200,
-      headers: {
-        "Content-Type": "text/html; charset=utf-8",
-      },
-    });
+    return NextResponse.json(event, { status: 200 });
   } catch (error) {
-    console.error("Error serving event:", error);
+    console.error("Error fetching event:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

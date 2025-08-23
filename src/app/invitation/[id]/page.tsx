@@ -1,6 +1,8 @@
 import { connectToDatabase } from "@/lib/database";
 import { ObjectId } from "mongodb";
 import { notFound } from "next/navigation";
+import { InvitationData } from "@/components/InvitationTemplate";
+import ClientInvitationWrapper from "@/components/ClientInvitationWrapper";
 
 interface InvitationPageProps {
   params: Promise<{
@@ -34,11 +36,49 @@ export default async function InvitationViewPage({
       notFound();
     }
 
-    // Return the HTML content directly
+    // Parse the JSON content from htmlContent field
+    let invitationData: InvitationData;
+    try {
+      // If htmlContent is JSON, parse it
+      if (invitation.htmlContent && invitation.htmlContent.startsWith("{")) {
+        invitationData = JSON.parse(invitation.htmlContent);
+      } else {
+        // Fallback: create data from existing fields for backward compatibility
+        invitationData = {
+          title: invitation.title || invitation.name || "Приглашение",
+          date: invitation.date || "Дата не указана",
+          location: invitation.location || "Место не указано",
+          description:
+            invitation.description || "Присоединяйтесь к нашему празднику!",
+          schedule: invitation.schedule || [],
+          photos: invitation.photoUrls || [],
+          rsvpText: "Подтвердить участие",
+          eventId: invitation.eventId || id,
+        };
+      }
+    } catch (error) {
+      console.error("Error parsing invitation data:", error);
+      // Fallback data
+      invitationData = {
+        title: invitation.title || "Приглашение",
+        date: invitation.date || "Дата не указана",
+        location: invitation.location || "Место не указано",
+        description: "Присоединяйтесь к нашему празднику!",
+        schedule: [],
+        photos: [],
+        rsvpText: "Подтвердить участие",
+        eventId: invitation.eventId || id,
+      };
+    }
+
+    const theme = invitation.theme || "elegant";
+
+    // Return the template with the data
     return (
-      <div
-        dangerouslySetInnerHTML={{ __html: invitation.htmlContent }}
-        style={{ minHeight: "100vh" }}
+      <ClientInvitationWrapper
+        data={invitationData}
+        themeName={theme}
+        ownerId={invitation.userId?.toString() || null}
       />
     );
   } catch (error) {

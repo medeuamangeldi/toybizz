@@ -2,7 +2,14 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useAuth } from "@/contexts/AuthContext";
+import GiftRegistry from "@/components/GiftRegistry";
+
+interface ScheduleItem {
+  time: string;
+  event: string;
+}
 
 interface EventData {
   type: string;
@@ -13,8 +20,9 @@ interface EventData {
   location: string;
   style: string;
   customStyle: string;
-  photos: File[];
+  photos: string[]; // Changed from File[] to string[] to store URLs
   melody: File | null;
+  schedule: ScheduleItem[];
 }
 
 export default function CreateInvitation() {
@@ -26,6 +34,7 @@ export default function CreateInvitation() {
   const [createdEventId, setCreatedEventId] = useState<string | null>(null);
   const [progressStep, setProgressStep] = useState<string>("");
   const [progress, setProgress] = useState(0);
+  const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const [eventData, setEventData] = useState<EventData>({
     type: "",
     name: "",
@@ -37,6 +46,7 @@ export default function CreateInvitation() {
     customStyle: "",
     photos: [],
     melody: null,
+    schedule: [],
   });
 
   useEffect(() => {
@@ -67,66 +77,54 @@ export default function CreateInvitation() {
 
   const styleOptions = [
     {
-      value: "классический",
-      label: "🖤 Классический",
-      desc: "Элегантный черно-белый",
+      value: "elegant",
+      label: "✨ Элегантный",
+      desc: "Классическая элегантность с четкими линиями и серифными шрифтами",
     },
     {
-      value: "нежный_розовый",
-      label: "🌸 Нежный розовый",
-      desc: "Романтические пастельные тона",
+      value: "romantic",
+      label: "💕 Романтический",
+      desc: "Нежные тона, сердечки и круглые формы",
     },
     {
-      value: "яркий_синий",
-      label: "🌈 Яркий синий",
-      desc: "Насыщенные синие оттенки",
-    },
-    { value: "золотой", label: "✨ Золотой", desc: "Роскошная золотая тема" },
-    {
-      value: "фиолетовый",
-      label: "💜 Фиолетовый",
-      desc: "Элегантные фиолетовые тона",
+      value: "modern",
+      label: "🚀 Современный",
+      desc: "Минималистский дизайн с неоновыми акцентами и моноширинными шрифтами",
     },
     {
-      value: "зеленый",
-      label: "🌿 Зеленый",
-      desc: "Естественные зеленые цвета",
+      value: "luxury",
+      label: "👑 Роскошный",
+      desc: "Премиальный дизайн с золотыми акцентами и орнаментами",
     },
     {
-      value: "оранжевый",
-      label: "🧡 Оранжевый",
-      desc: "Теплые оранжевые оттенки",
-    },
-    { value: "красный", label: "❤️ Красный", desc: "Смелый красный дизайн" },
-    {
-      value: "морской",
-      label: "🌊 Морской",
-      desc: "Океанические сине-бирюзовые тона",
+      value: "nature",
+      label: "🌿 Природный",
+      desc: "Естественные зеленые оттенки и органичные формы",
     },
     {
-      value: "минимальный",
-      label: "🤍 Минимальный",
-      desc: "Ультра чистый белый дизайн",
+      value: "vintage",
+      label: "📜 Винтажный",
+      desc: "Ретро стиль с декоративными рамками и классическими шрифтами",
     },
     {
-      value: "неон",
-      label: "⚡ Неон",
-      desc: "Электрические неоновые эффекты",
+      value: "minimalist",
+      label: "⚪ Минималистский",
+      desc: "Чистый белый дизайн с тонкими линиями и простотой",
     },
     {
-      value: "звездные_войны",
-      label: "🌌 Звездные Войны",
-      desc: "Галактический стиль из далекой галактики",
+      value: "festive",
+      label: "🎉 Праздничный",
+      desc: "Яркие цвета, анимации и праздничная атмосфера",
     },
     {
-      value: "кибер_панк",
-      label: "🤖 Кибер-панк",
-      desc: "Футуристический мир будущего",
+      value: "cosmic",
+      label: "✨ Космический",
+      desc: "Темная тема с градиентами и футуристичными эффектами",
     },
     {
-      value: "ретро_вейв",
-      label: "🌈 Ретро-вейв",
-      desc: "Стиль 80-х с синтвейв эстетикой",
+      value: "bohemian",
+      label: "🌸 Богемный",
+      desc: "Художественный стиль с теплыми тонами и креативными формами",
     },
     {
       value: "custom",
@@ -135,13 +133,51 @@ export default function CreateInvitation() {
     },
   ];
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length + eventData.photos.length > 5) {
       alert("Максимум 5 фотографий");
       return;
     }
-    setEventData((prev) => ({ ...prev, photos: [...prev.photos, ...files] }));
+
+    setUploadingPhotos(true);
+    const uploadedUrls: string[] = [];
+
+    try {
+      for (const file of files) {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const token = localStorage.getItem("token");
+        const response = await fetch("/api/upload", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          uploadedUrls.push(result.url);
+        } else {
+          console.error("Upload failed for file:", file.name);
+          alert(`Ошибка загрузки файла: ${file.name}`);
+        }
+      }
+
+      if (uploadedUrls.length > 0) {
+        setEventData((prev) => ({
+          ...prev,
+          photos: [...prev.photos, ...uploadedUrls],
+        }));
+      }
+    } catch (error) {
+      console.error("Upload error:", error);
+      alert("Ошибка при загрузке фото");
+    } finally {
+      setUploadingPhotos(false);
+    }
   };
 
   const handleMelodyUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -163,6 +199,33 @@ export default function CreateInvitation() {
     }));
   };
 
+  const addScheduleItem = () => {
+    setEventData((prev) => ({
+      ...prev,
+      schedule: [...prev.schedule, { time: "", event: "" }],
+    }));
+  };
+
+  const updateScheduleItem = (
+    index: number,
+    field: keyof ScheduleItem,
+    value: string
+  ) => {
+    setEventData((prev) => ({
+      ...prev,
+      schedule: prev.schedule.map((item, i) =>
+        i === index ? { ...item, [field]: value } : item
+      ),
+    }));
+  };
+
+  const removeScheduleItem = (index: number) => {
+    setEventData((prev) => ({
+      ...prev,
+      schedule: prev.schedule.filter((_, i) => i !== index),
+    }));
+  };
+
   const handleSubmit = async () => {
     setLoading(true);
     setProgress(0);
@@ -173,18 +236,28 @@ export default function CreateInvitation() {
 
       // Add event details
       Object.entries(eventData).forEach(([key, value]) => {
-        if (key !== "photos" && key !== "melody" && value) {
+        if (
+          key !== "photos" &&
+          key !== "melody" &&
+          key !== "schedule" &&
+          value
+        ) {
           formData.append(key, value.toString());
         }
       });
 
+      // Add schedule as JSON
+      if (eventData.schedule && eventData.schedule.length > 0) {
+        formData.append("schedule", JSON.stringify(eventData.schedule));
+      }
+
       setProgress(10);
       setProgressStep("Загрузка фотографий...");
 
-      // Add photos
-      eventData.photos.forEach((photo, index) => {
-        formData.append(`photo_${index}`, photo);
-      });
+      // Add photos (already uploaded, just pass URLs)
+      if (eventData.photos.length > 0) {
+        formData.append("photos", JSON.stringify(eventData.photos));
+      }
 
       setProgress(30);
 
@@ -262,6 +335,115 @@ export default function CreateInvitation() {
     }
   };
 
+  const handleCreateAndSetupGifts = async () => {
+    setLoading(true);
+    setProgress(0);
+    setProgressStep("Подготовка данных...");
+
+    try {
+      const formData = new FormData();
+
+      // Add event details
+      Object.entries(eventData).forEach(([key, value]) => {
+        if (
+          key !== "photos" &&
+          key !== "melody" &&
+          key !== "schedule" &&
+          value
+        ) {
+          formData.append(key, value.toString());
+        }
+      });
+
+      // Add schedule as JSON
+      if (eventData.schedule && eventData.schedule.length > 0) {
+        formData.append("schedule", JSON.stringify(eventData.schedule));
+      }
+
+      setProgress(10);
+      setProgressStep("Загрузка фотографий...");
+
+      // Add photos (already uploaded, just pass URLs)
+      if (eventData.photos.length > 0) {
+        formData.append("photos", JSON.stringify(eventData.photos));
+      }
+
+      setProgress(30);
+
+      // Add melody
+      if (eventData.melody) {
+        setProgressStep("Загрузка музыки...");
+        formData.append("melody", eventData.melody);
+        setProgress(40);
+      }
+
+      setProgressStep("Создание приглашения с помощью ИИ...");
+      setProgress(50);
+
+      // Create XMLHttpRequest to track upload progress
+      const xhr = new XMLHttpRequest();
+
+      await new Promise<void>((resolve, reject) => {
+        xhr.upload.addEventListener("progress", (e) => {
+          if (e.lengthComputable) {
+            const uploadProgress = Math.round((e.loaded / e.total) * 30); // 30% for upload
+            setProgress(50 + uploadProgress);
+          }
+        });
+
+        xhr.addEventListener("load", () => {
+          if (xhr.status === 200) {
+            setProgress(90);
+            setProgressStep("Финализация...");
+
+            const result = JSON.parse(xhr.responseText);
+            setCreatedEventId(result.eventId);
+            setProgress(100);
+            setProgressStep("Переход к настройке подарков...");
+
+            setTimeout(() => {
+              setStep(6); // Go to gift registry step
+              resolve();
+            }, 500);
+          } else {
+            const result = JSON.parse(xhr.responseText);
+            if (result.freeTrialEnded) {
+              alert(
+                `${
+                  result.message || "Пробный период закончен"
+                }\n\nВы использовали все 3 бесплатных приглашения. Пожалуйста, приобретите план для продолжения создания приглашений.`
+              );
+            } else {
+              alert(result.error || "Произошла ошибка");
+            }
+            reject(new Error(`HTTP ${xhr.status}`));
+          }
+        });
+
+        xhr.addEventListener("error", () => {
+          alert("Произошла ошибка при создании приглашения");
+          reject(new Error("Network error"));
+        });
+
+        xhr.open("POST", "/api/create-invitation");
+
+        // Add Authorization header if user is logged in
+        const token = localStorage.getItem("token");
+        if (token) {
+          xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+        }
+
+        xhr.send(formData);
+      });
+    } catch (error) {
+      console.error("Error:", error);
+    } finally {
+      setLoading(false);
+      setProgress(0);
+      setProgressStep("");
+    }
+  };
+
   const isStepValid = (stepNumber: number) => {
     switch (stepNumber) {
       case 1:
@@ -269,12 +451,16 @@ export default function CreateInvitation() {
       case 2:
         return eventData.date && eventData.time && eventData.location;
       case 3:
+        return true; // Schedule is optional
+      case 4:
         return (
           eventData.style &&
           (eventData.style !== "custom" || eventData.customStyle.trim())
         );
-      case 4:
+      case 5:
         return true; // Photos and melody are optional
+      case 6:
+        return true; // Gift registry is optional
       default:
         return false;
     }
@@ -292,37 +478,29 @@ export default function CreateInvitation() {
             >
               ToyBiz
             </Link>
-            <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
+            <div className="flex items-center space-x-4 w-full sm:w-auto justify-between">
               {user ? (
-                <>
+                <div className="flex items-center space-x-4">
                   <Link
                     href="/dashboard"
-                    className="text-blue-600 hover:text-blue-700 font-medium text-sm sm:text-base"
+                    className="text-blue-600 hover:text-blue-700 font-medium text-sm"
                   >
                     Мои приглашения
                   </Link>
-                  <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-2">
-                    <span className="text-gray-700 text-sm">{user.email}</span>
-                    <div className="flex gap-2">
-                      {user.plan && user.plan !== "free" && (
-                        <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full w-fit">
-                          {user.plan}
-                        </span>
-                      )}
-                      {(!user.plan || user.plan === "free") && (
-                        <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full w-fit">
-                          Бесплатно: {3 - (user.freeTrialCount || 0)} из 3
-                        </span>
-                      )}
-                    </div>
-                  </div>
+                  <span className="text-gray-700 text-sm">
+                    👋 {user.email?.split("@")[0]}
+                  </span>
+                  <span className="text-xs bg-blue-500 text-white px-2 py-1 rounded-full">
+                    {3 - (user.freeTrialCount || 0)}/3
+                  </span>
                   <button
                     onClick={logout}
-                    className="text-gray-600 hover:text-gray-700 text-sm sm:text-base"
+                    className="text-gray-600 hover:text-gray-700 text-sm"
+                    title="Выйти"
                   >
-                    Выйти
+                    🚪
                   </button>
-                </>
+                </div>
               ) : (
                 <>
                   <Link
@@ -364,14 +542,14 @@ export default function CreateInvitation() {
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                   <input
                     type="text"
-                    value={`${window.location.origin}/event/${createdEventId}`}
+                    value={`${window.location.origin}/invitation/${createdEventId}`}
                     readOnly
                     className="flex-1 p-3 border border-gray-300 rounded-lg text-sm bg-white"
                   />
                   <button
                     onClick={() => {
                       navigator.clipboard.writeText(
-                        `${window.location.origin}/event/${createdEventId}`
+                        `${window.location.origin}/invitation/${createdEventId}`
                       );
                       alert("Ссылка скопирована в буфер обмена!");
                     }}
@@ -398,6 +576,7 @@ export default function CreateInvitation() {
                       customStyle: "",
                       photos: [],
                       melody: null,
+                      schedule: [],
                     });
                     setCreatedEventId(null);
                   }}
@@ -405,9 +584,15 @@ export default function CreateInvitation() {
                 >
                   Создать еще
                 </button>
+                <Link
+                  href={`/edit-invitation/${createdEventId}`}
+                  className="flex-1 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all font-medium text-center"
+                >
+                  Редактировать
+                </Link>
                 <button
                   onClick={() =>
-                    window.open(`/event/${createdEventId}`, "_blank")
+                    window.open(`/invitation/${createdEventId}`, "_blank")
                   }
                   className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all font-medium"
                 >
@@ -458,7 +643,7 @@ export default function CreateInvitation() {
             Создать приглашение
           </h1>
           <div className="flex justify-center space-x-2 mb-4 sm:mb-6">
-            {[1, 2, 3, 4].map((i) => (
+            {[1, 2, 3, 4, 5].map((i) => (
               <div
                 key={i}
                 className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-sm font-medium ${
@@ -682,8 +867,60 @@ export default function CreateInvitation() {
                 </div>
               )}
 
-              {/* Step 3: Style Selection */}
+              {/* Step 3: Schedule/Agenda */}
               {step === 3 && (
+                <div className="space-y-4 sm:space-y-6">
+                  <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
+                    Программа мероприятия (необязательно)
+                  </h2>
+
+                  <div className="space-y-4">
+                    {eventData.schedule.map((item, index) => (
+                      <div key={index} className="flex gap-3 items-start">
+                        <input
+                          type="time"
+                          value={item.time}
+                          onChange={(e) =>
+                            updateScheduleItem(index, "time", e.target.value)
+                          }
+                          className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                        />
+                        <input
+                          type="text"
+                          value={item.event}
+                          onChange={(e) =>
+                            updateScheduleItem(index, "event", e.target.value)
+                          }
+                          placeholder="Описание события"
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                        />
+                        <button
+                          onClick={() => removeScheduleItem(index)}
+                          className="text-red-600 hover:text-red-800 p-2"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+
+                    <button
+                      onClick={addScheduleItem}
+                      className="w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-blue-400 hover:text-blue-600 transition-colors"
+                    >
+                      + Добавить событие в программу
+                    </button>
+                  </div>
+
+                  <p className="text-sm text-gray-500">
+                    Добавьте временную программу мероприятия для удобства
+                    гостей. Например: 15:00 - Регистрация гостей, 16:00 -
+                    Церемония, и т.д.
+                  </p>
+                </div>
+              )}
+
+              {/* Step 4: Style Selection */}
+              {step === 4 && (
                 <div className="space-y-4 sm:space-y-6">
                   <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
                     Выберите стиль
@@ -742,8 +979,8 @@ export default function CreateInvitation() {
                 </div>
               )}
 
-              {/* Step 4: Photos and Melody */}
-              {step === 4 && (
+              {/* Step 5: Photos and Melody */}
+              {step === 5 && (
                 <div className="space-y-4 sm:space-y-6">
                   <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
                     Фотографии и музыка
@@ -760,33 +997,45 @@ export default function CreateInvitation() {
                         multiple
                         accept="image/*"
                         onChange={handlePhotoUpload}
+                        disabled={uploadingPhotos}
                         className="hidden"
                         id="photos"
                       />
                       <label
                         htmlFor="photos"
-                        className="cursor-pointer inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                        className={`cursor-pointer inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white ${
+                          uploadingPhotos
+                            ? "bg-gray-400 cursor-not-allowed"
+                            : "bg-blue-600 hover:bg-blue-700"
+                        }`}
                       >
-                        📸 Выбрать фотографии
+                        📸{" "}
+                        {uploadingPhotos ? "Загрузка..." : "Выбрать фотографии"}
                       </label>
                       <p className="text-gray-500 text-xs sm:text-sm mt-2">
                         Поддерживаются JPG, PNG (макс. 5MB каждая)
                       </p>
+                      {uploadingPhotos && (
+                        <p className="text-blue-600 text-sm mt-2">
+                          Загрузка фото...
+                        </p>
+                      )}
                     </div>
 
                     {eventData.photos.length > 0 && (
-                      <div className="mt-4 space-y-2">
-                        {eventData.photos.map((photo, index) => (
-                          <div
-                            key={index}
-                            className="flex items-center justify-between p-2 border rounded"
-                          >
-                            <span className="text-xs sm:text-sm text-gray-600 truncate flex-1 mr-2">
-                              {photo.name}
-                            </span>
+                      <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-4">
+                        {eventData.photos.map((photoUrl, index) => (
+                          <div key={index} className="relative group">
+                            <Image
+                              src={photoUrl}
+                              alt={`Photo ${index + 1}`}
+                              width={100}
+                              height={80}
+                              className="w-full h-20 sm:h-24 object-cover rounded-lg"
+                            />
                             <button
                               onClick={() => removePhoto(index)}
-                              className="text-red-600 hover:text-red-800 p-1"
+                              className="absolute top-1 right-1 bg-red-600 hover:bg-red-700 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
                             >
                               ✕
                             </button>
@@ -844,6 +1093,27 @@ export default function CreateInvitation() {
                 </div>
               )}
 
+              {/* Step 6: Gift Registry */}
+              {step === 6 && createdEventId && (
+                <div className="space-y-4 sm:space-y-6">
+                  <div className="text-center mb-6">
+                    <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">
+                      Реестр подарков
+                    </h2>
+                    <p className="text-gray-600 text-sm">
+                      Добавьте подарки, которые хотели бы получить от гостей
+                      (необязательно)
+                    </p>
+                  </div>
+
+                  <GiftRegistry
+                    eventId={createdEventId}
+                    isOwner={true}
+                    editMode={true}
+                  />
+                </div>
+              )}
+
               {/* Navigation Buttons */}
               <div className="flex flex-col sm:flex-row justify-between mt-6 sm:mt-8 space-y-3 sm:space-y-0">
                 {step > 1 && (
@@ -855,7 +1125,7 @@ export default function CreateInvitation() {
                   </button>
                 )}
 
-                {step < 4 ? (
+                {step < 5 ? (
                   <button
                     onClick={() => setStep(step + 1)}
                     disabled={!isStepValid(step)}
@@ -869,10 +1139,36 @@ export default function CreateInvitation() {
                   >
                     Далее
                   </button>
-                ) : (
-                  <div className={`${step > 1 ? "sm:ml-auto" : "ml-auto"}`}>
+                ) : step === 5 ? (
+                  <div
+                    className={`${
+                      step > 1 ? "sm:ml-auto" : "ml-auto"
+                    } flex gap-3`}
+                  >
+                    <button
+                      onClick={handleCreateAndSetupGifts}
+                      disabled={loading || !isStepValid(step)}
+                      className={`px-6 py-3 rounded-lg font-medium text-sm sm:text-base ${
+                        loading
+                          ? "bg-gray-400 text-white cursor-not-allowed"
+                          : "bg-purple-600 text-white hover:bg-purple-700"
+                      }`}
+                    >
+                      {loading ? "Создание..." : "🎁 Добавить подарки"}
+                    </button>
+                    <button
+                      onClick={handleSubmit}
+                      disabled={loading || !isStepValid(step)}
+                      className={`px-6 py-3 rounded-lg font-medium text-sm sm:text-base ${
+                        loading
+                          ? "bg-gray-400 text-white cursor-not-allowed"
+                          : "bg-green-600 text-white hover:bg-green-700"
+                      }`}
+                    >
+                      {loading ? "Создание..." : "🎉 Создать приглашение"}
+                    </button>
                     {loading && (
-                      <div className="mb-4">
+                      <div className="absolute top-full left-0 right-0 mt-4">
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-xs sm:text-sm text-gray-600">
                             {progressStep}
@@ -883,32 +1179,23 @@ export default function CreateInvitation() {
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-2">
                           <div
-                            className="bg-gradient-to-r from-blue-500 to-green-500 h-2 rounded-full transition-all duration-300 ease-out"
+                            className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                             style={{ width: `${progress}%` }}
                           ></div>
                         </div>
                       </div>
                     )}
+                  </div>
+                ) : step === 6 ? (
+                  <div className={`${step > 1 ? "sm:ml-auto" : "ml-auto"}`}>
                     <button
-                      onClick={handleSubmit}
-                      disabled={loading}
-                      className={`w-full sm:w-auto px-6 sm:px-8 py-3 rounded-lg font-medium transition-all duration-200 text-sm sm:text-base ${
-                        loading
-                          ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                          : "bg-green-600 text-white hover:bg-green-700 hover:shadow-lg"
-                      }`}
+                      onClick={() => setShowSuccessModal(true)}
+                      className="px-6 py-3 bg-green-600 text-white rounded-lg font-medium text-sm sm:text-base hover:bg-green-700"
                     >
-                      {loading ? (
-                        <div className="flex items-center justify-center">
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                          Создаем приглашение...
-                        </div>
-                      ) : (
-                        "🎉 Создать приглашение"
-                      )}
+                      🎉 Завершить создание
                     </button>
                   </div>
-                )}
+                ) : null}
               </div>
             </div>
           </React.Fragment>
